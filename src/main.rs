@@ -1,5 +1,5 @@
 use csv::ReaderBuilder;
-use ndarray::{Array1, Array2, Array, Axis};
+use ndarray::{Array1, Array2, Array, Axis, s};
 use ndarray_csv::Array2Reader;
 use std::error::Error;
 use std::fs::File;
@@ -44,11 +44,11 @@ fn softmax(z: Array2<f64>) -> Array2<f64> {
 }
 
 fn forward_prop(
-    w1: Array2<f64>, 
-    b1: Array2<f64>, 
-    w2: Array2<f64>, 
-    b2: Array2<f64>, 
-    X: Array2<f64>
+    w1: &Array2<f64>, 
+    b1: &Array2<f64>, 
+    w2: &Array2<f64>, 
+    b2: &Array2<f64>, 
+    X: &Array2<f64>
 ) -> (Array2<f64>, Array2<f64>, Array2<f64>, Array2<f64>) { 
     // Ensure b1 is broadcast to the shape of w1.dot(X)
     let Z1 = w1.dot(&X) + b1.broadcast(w1.dot(&X).dim()).unwrap();
@@ -80,8 +80,68 @@ fn one_hot(y: Array1<usize>) -> Array2<f64> {
 }
 
 
+fn back_prop(
+    z1: Array2<f64>,
+    a1: Array2<f64>,
+    a2: Array2<f64>,
+    w1: Array2<f64>,
+    w2: Array2<f64>,
+    x: Array2<f64>,
+    y: Array1<usize>,
+    m: usize, // Number of samples
+) -> (Array2<f64>, Array2<f64>, Array2<f64>, Array2<f64>) {
+    let one_hot_y = one_hot(y);
+    let dz2 = &a2 - &one_hot_y;
+    let dw2 = (1.0 / m as f64) * dz2.dot(&a1.t());
+    let db2 = Array2::from_elem((w2.nrows(), 1), (1.0 / m as f64) * dz2.sum_axis(Axis(0)).sum());
+    let dz1 = w2.t().dot(&dz2) * reLU_deriv(z1);
+    let dw1 = (1.0 / m as f64) * dz1.dot(&x.t());
+    let db1 = Array2::from_elem((w1.nrows(), 1), (1.0 / m as f64) * dz1.sum_axis(Axis(0)).sum());
+    (dw1, db1, dw2, db2)
+}
 
+fn update_params(w1: Array2<f64>, b1: Array2<f64>, w2: Array2<f64>, b2: Array2<f64>, dw1: Array2<f64>, db1: Array2<f64>, dw2: Array2<f64>, db2: Array2<f64>, alpha: f64) -> (Array2<f64>, Array2<f64>, Array2<f64>, Array2<f64>) {
+    let w1 = w1 - alpha * dw1;
+    let b1 = b1 - alpha * db1;
+    let w2 = w2 - alpha * dw2;  
+    let b2 = b2 - alpha * db2;    
+    (w1, b1, w2, b2)
+}
     
+fn gradient_descent(
+    x: Array2<f64>,
+    y: Array1<usize>,
+    alpha: f64,
+    iterations: usize,
+) -> (Array2<f64>, Array2<f64>, Array2<f64>, Array2<f64>) {
+    // Initialize parameters
+    let (mut w1, mut b1, mut w2, mut b2) = init_params();
+
+    for i in 0..iterations {
+        // Perform forward propagation
+        let (z1, a1, z2, a2) = forward_prop(&w1, &b1, &w2, &b2, &x);
+
+        // Perform backward propagation
+        let (dw1, db1, dw2, db2) = back_prop(z1, a1, a2, w1.clone(), w2.clone(), x.clone(), y.clone(), x.nrows());
+
+        // Update parameters
+        let (new_w1, new_b1, new_w2, new_b2) = update_params(w1, b1, w2, b2, dw1, db1, dw2, db2, alpha);
+        w1 = new_w1;
+        b1 = new_b1;
+        w2 = new_w2;
+        b2 = new_b2;
+
+        // Print progress every 10 iterations
+        // if i % 10 == 0 {
+        //     println!("Iteration: {}", i);
+        //     let predictions = get_predictions(&a2);
+        //     let accuracy = get_accuracy(&predictions, &y);
+        //     println!("Accuracy: {:.2}%", accuracy * 100.0);
+        // }
+    }
+
+    (w1, b1, w2, b2)
+}
 
 fn main() {
     // let data = read_csv("train.csv");
@@ -91,10 +151,17 @@ fn main() {
             
             let (m, n) = data.dim();
             println!("Array shape: {:?}, {:?}", m, n);
+                // Split the data into Y (first column) and X (remaining columns)
+    let y_train = data.column(0).to_owned(); // First column as labels (1D array)
+    let x_train = data.slice(s![.., 1..]).to_owned(); // Remaining columns as features
+
+    // Print sizes
+    println!("Shape of Y (labels): {:?}", y_train.dim());
+    println!("Shape of X (features): {:?}", x_train.dim());
 
             let  (w1, b1, w2, b2) = init_params();
 
-
+           (W1, b1, W2, b2) = gradient_descent(x_train, y_train, 0.10, 500)
 
         }
         Err(e) => {
@@ -312,5 +379,71 @@ mod tests {
         let result = one_hot(y);
         assert_eq!(result, expected, "One-hot encoding for empty labels is incorrect");
     }
+
+    #[test]
+     fn test_back_prop() {
+            // Mock inputs
+            let z1 = array![[0.5, -0.2], [0.8, 1.0]];
+            let a1 = array![[0.6, 0.0], [0.7, 0.9]];
+            let a2 = array![[0.8, 0.4], [0.2, 0.6]];
+            let w1 = array![[0.1, 0.2], [0.3, 0.4]];
+            let w2 = array![[0.5, 0.6], [0.7, 0.8]];
+            let x = array![[1.0, 0.5], [0.3, 0.7]];
+            let y = Array1::from(vec![0, 1]);
+            let m = 2;
+    
+            // Expected outputs (manually calculated or mocked)
+            let expected_dw1 = array![[ 0.02, 0.01 ],
+            [ 0.02, 0.01 ]];
+            let expected_db1 = array![[ 0.04 ],
+            [ 0.0 ]];
+            let expected_dw2 = array![[ 0.01,  0.18 ],
+            [-0.01, -0.18 ]];
+            let expected_db2 = array![[ 0.0 ],
+            [ 0.0 ]];
+    
+      
+            // Call the back_prop function
+            let (dw1, db1, dw2, db2) = back_prop(z1, a1, a2, w1, w2, x, y, m);
+    
+            // Tolerance for comparison
+            let tol = 1e-6;
+    
+            fn arrays_close(a: &Array2<f64>, b: &Array2<f64>, tol: f64) -> bool {
+                if a.dim() != b.dim() {
+                    return false; // Dimensions must match
+                }
+            
+                a.iter()
+                    .zip(b.iter())
+                    .all(|(a_elem, b_elem)| (a_elem - b_elem).abs() <= tol)
+            }
+            
+            // Assertions
+            assert!(
+                arrays_close(&dw1, &expected_dw1, tol),
+                "dw1 mismatch: expected {:?}, got {:?}",
+                expected_dw1,
+                dw1
+            );
+            assert!(
+                arrays_close(&db1, &expected_db1, tol),
+                "db1 mismatch: expected {:?}, got {:?}",
+                expected_db1,
+                db1
+            );
+            assert!(
+                arrays_close(&dw2, &expected_dw2, tol),
+                "dw2 mismatch: expected {:?}, got {:?}",
+                expected_dw2,
+                dw2
+            );
+            assert!(
+                arrays_close(&db2, &expected_db2, tol),
+                "db2 mismatch: expected {:?}, got {:?}",
+                expected_db2,
+                db2
+            );
+        }
     
 }
