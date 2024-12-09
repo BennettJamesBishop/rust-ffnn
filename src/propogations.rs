@@ -1,7 +1,7 @@
 use crate::matrix::Matrix;
 use crate::network::Network;
 
-//This mod contains the forward propogation function
+//This mod contains the forward propogation and back propogation functions
 
 impl Network {
     pub fn forward_prop(&mut self, inputs: Matrix) -> Matrix {
