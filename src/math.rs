@@ -4,10 +4,16 @@ use crate::matrix::Matrix;
 
 impl Matrix {
     pub fn add(&self, matrix2: &Matrix) -> Matrix {
-        if self.rows != matrix2.rows  {
-            panic!("Cant add, matrices have different number of rows");
-        } else if self.columns != matrix2.columns  {
-            panic!("Cant add, matrices have different columns");
+        if self.rows != matrix2.rows {
+            panic!(
+                "Cannot add matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
+                self.rows, matrix2.rows
+            );
+        } else if self.columns != matrix2.columns {
+            panic!(
+                "Cannot add matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
+                self.columns, matrix2.columns
+            );
         }
 
         let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
@@ -24,10 +30,16 @@ impl Matrix {
     }
 
     pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
-        if self.rows != matrix2.rows  {
-            panic!("Cant subtract, matrices have different number of rows");
-        } else if self.columns != matrix2.columns  {
-            panic!("Cant subtract, matrices have different columns");
+        if self.rows != matrix2.rows {
+            panic!(
+                "Cannot subtract matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
+                self.rows, matrix2.rows
+            );
+        } else if self.columns != matrix2.columns {
+            panic!(
+                "Cannot subtract matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
+                self.columns, matrix2.columns
+            );
         }
     
         let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);

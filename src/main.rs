@@ -10,10 +10,18 @@ use matrix::Matrix;
 use network::Network;
 mod propogations;
 
-fn read_csv(path_to_file: &str) -> Result<Array2<u64>, Box<dyn Error>> {
+fn read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
     let file = File::open(path_to_file)?;
     let mut reader = ReaderBuilder::new().has_headers(true).from_reader(file);
-    Ok(reader.deserialize_array2((42000, 785))?)
+
+    // Read the entire CSV into a 2D array
+    let raw_data: Array2<u64> = reader.deserialize_array2((42000, 785))?;
+    
+    // Split the data into labels (first column) and features (remaining columns)
+    let y_train = raw_data.column(0).to_owned().to_vec(); // Labels as a vector
+    let x_train = raw_data.slice(s![.., 1..]).map(|&x| x as f64); // Features converted to f64
+
+    Ok((x_train, y_train))
 }
 
 impl Network {
@@ -36,37 +44,67 @@ fn gradient_descent(
             .iter()
             .map(|x| x * x)
             .sum::<f64>() / targets.data.len() as f64;
-        if epoch % 100 == 0 {
+        
             println!("Epoch {}: Loss = {:?}", epoch + 1, loss);
-        }
+        
+        
 
     }
 }
 }
 
 fn main() {
-    // let data = read_csv("train.csv");
     match read_csv("train.csv") {
-        Ok(data) => {
-            // If successful, print the shape of the array
-            
-            let (m, n) = data.dim();
-            println!("Array shape: {:?}, {:?}", m, n);
-                // Split the data into Y (first column) and X (remaining columns)
-    let y_train = data.column(0).to_owned(); // First column as labels (1D array)
-    let x_train = data.slice(s![.., 1..]).to_owned(); // Remaining columns as features
+        Ok((x_train, y_train)) => {
+            println!("Data successfully loaded.");
+            println!("Shape of X (features): {:?}", x_train.dim());
+            println!("Shape of Y (labels): {:?}", y_train.len());
 
-    // Print sizes
-    println!("Shape of Y (labels): {:?}", y_train.dim());
-    println!("Shape of X (features): {:?}", x_train.dim());
+            // Normalize and transpose features
+            let x_train_normalized = x_train.mapv(|x| x / 255.0).reversed_axes(); // Now (784, 42000)
 
+            // Convert the feature matrix to your `Matrix` structure
+            let input_matrix = Matrix {
+                rows: x_train_normalized.nrows(),  // 784
+                columns: x_train_normalized.ncols(), // 42000
+                data: x_train_normalized.iter().cloned().collect(),
+            };
+
+            // Convert the labels to a one-hot encoded `Matrix`
+            let num_classes = 10; // MNIST has 10 classes (digits 0-9)
+            let target_matrix = Matrix {
+                rows: num_classes,
+                columns: y_train.len(),
+                data: y_train
+                    .iter()
+                    .flat_map(|&label| {
+                        (0..num_classes).map(move |class| if class == label.try_into().unwrap() { 1.0 } else { 0.0 })
+                    })
+                    .collect(),
+            };
+
+            println!(
+                "Input matrix shape: {}x{}",
+                input_matrix.rows, input_matrix.columns
+            );
+            println!(
+                "Target matrix shape: {}x{}",
+                target_matrix.rows, target_matrix.columns
+            );
+
+            // Initialize the network
+            let mut network = Network::new(vec![784, 128, 10]); // Example architecture
+
+            // Train the network
+            network.gradient_descent(&input_matrix, &target_matrix, 0.01, 20);
         }
         Err(e) => {
-            // Handle errors gracefully
             eprintln!("Error reading CSV: {}", e);
         }
     }
-}
+    }
+   
+
 
 
 #[cfg(test)]
