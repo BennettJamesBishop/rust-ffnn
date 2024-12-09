@@ -96,13 +96,14 @@ mod tests {
         assert_eq!(output.rows, 10); // Output should have 10 rows (one for each digit class)
         assert_eq!(output.columns, 1); // Single column for the output vector
     
-        // Optional: Print the output for debugging
-        println!("Final output activations: {:?}", output.data);
-    
         // Ensure that the outputs are valid probabilities (e.g., between 0 and 1 if using sigmoid in the output layer)
         for &value in &output.data {
             assert!(value >= 0.0 && value <= 1.0, "Output value out of range: {}", value);
         }
+
+        let sum: f64 = output.data.iter().sum();
+        assert!((sum - 1.0).abs() < 1e-6, "Sum of probabilities is not 1: {}", sum);
+
     }
     
 }

@@ -1,6 +1,5 @@
 
 use rand::Rng;
-use std::f64::consts::E;
 #[derive(Clone)]
 pub struct Matrix {
     pub rows: usize,
