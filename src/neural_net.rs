@@ -34,7 +34,7 @@ impl Network {
         }
     }
 
-    pub fn feed_forward(&mut self, inputs: Matrix) -> Matrix {
+    pub fn forward_prop(&mut self, inputs: Matrix) -> Matrix {
         // Validate input dimensions
         assert!(
             self.layers[0] == inputs.rows,
@@ -69,6 +69,7 @@ impl Network {
         current
     }
 
+
 }
 
 
@@ -77,8 +78,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_feed_forward_mnist() {
-        // Define a network suitable for MNIST: input -> hidden -> output
+    fn test_forward_prop_mnist() {
+        // Network suitable for MNIST: input -> hidden -> output
         let mut network = Network::new(vec![784, 128, 10]);
     
         // Create a mock input matrix representing a single MNIST image
@@ -90,7 +91,7 @@ mod tests {
         };
     
         // Perform forward propagation
-        let output = network.feed_forward(inputs);
+        let output = network.forward_prop(inputs);
     
         // Check output dimensions
         assert_eq!(output.rows, 10); // Output should have 10 rows (one for each digit class)
