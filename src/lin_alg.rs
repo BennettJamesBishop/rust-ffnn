@@ -65,6 +65,26 @@ impl Matrix {
 
             }
 
+            pub fn multiply(&self, matrix2: &Matrix) -> Matrix {
+                if self.rows != matrix2.rows  {
+                    panic!("Cant multiply, matrices have different number of rows");
+                } else if self.columns != matrix2.columns  {
+                    panic!("Cant multiply, matrices have different columns");
+                }
+        
+                let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
+                for i in 0..self.data.len() {
+                        let result = self.data[i] * matrix2.data[i];
+                        buffer.push(result);
+                }
+                Matrix {
+                    rows: self.rows,
+                    columns: self.columns,
+                    data: buffer
+                }
+    
+                }
+
             // [0, 1, 3, 2, 4, 4]   [3, 2, 3, 5, 3, 1]
 
             // [0,1,3]               [3, 2]
@@ -201,6 +221,46 @@ mod tests {
         };
 
         matrix1.subtract(&matrix2); // Should panic
+    }
+
+    #[test]
+    fn test_multiply_matrices() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let matrix2 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![5.0, 6.0, 7.0, 8.0],
+        };
+
+        let result = matrix1.multiply(&matrix2);
+
+        // Check dimensions
+        assert_eq!(result.rows, 2);
+        assert_eq!(result.columns, 2);
+
+        // Check data
+        assert_eq!(result.data, vec![5.0, 12.0, 21.0, 32.0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cant multiply, matrices have different columns")]
+    fn test_multiply_matrices_different_columns() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let matrix2 = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        };
+
+        matrix1.multiply(&matrix2); // Should panic
     }
 
     #[test]
