@@ -63,6 +63,16 @@ impl Matrix {
         }
     }
 
+    pub fn scale(&self, scalar: f64) -> Matrix {
+        let data: Vec<f64> = self.data.iter().map(|&value| value * scalar).collect();
+
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data,
+        }
+    }
+
     pub fn dot_product(&self, matrix2: &Matrix) -> Matrix {
         if self.columns != matrix2.rows  {
             panic!("Cant do dot product, matrices have different wrong dimensions");
@@ -115,6 +125,19 @@ impl Matrix {
             }
         }
     }
+
+    pub fn relu_derivative(&self) -> Matrix {
+        let mut derivative = self.data.clone();
+        for value in derivative.iter_mut() {
+            *value = if *value > 0.0 { 1.0 } else { 0.0 };
+        }
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data: derivative,
+        }
+    }
+
 
         /// Apply the softmax function to the entire flattened `data` vector
     pub fn softmax(&self) -> Matrix {
@@ -263,6 +286,27 @@ mod tests {
     }
 
     #[test]
+    fn test_scale() {
+        let matrix = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        };
+
+        let scaled_matrix = matrix.scale(2.0);
+
+        let expected = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![2.0, 4.0, 6.0, 8.0, 10.0, 12.0],
+        };
+
+        assert_eq!(scaled_matrix.rows, expected.rows);
+        assert_eq!(scaled_matrix.columns, expected.columns);
+        assert_eq!(scaled_matrix.data, expected.data);
+    }
+
+    #[test]
     fn test_dot_product_matrices() {
         let matrix1 = Matrix {
             rows: 2,
@@ -327,6 +371,26 @@ mod tests {
     }
 
     #[test]
+    fn test_relu() {
+        let mut matrix = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![-1.0, 2.0, -3.0, 4.0, 0.0, -5.0],
+        };
+
+        matrix.relu();
+
+        let expected = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![0.0, 2.0, 0.0, 4.0, 0.0, 0.0],
+        };
+
+        assert_eq!(matrix.data, expected.data);
+    }
+
+
+    #[test]
     fn test_single_row_matrix_transpose() {
         let single_row = Matrix {
             rows: 1,
@@ -372,6 +436,21 @@ mod tests {
 
         // Assert data
         assert_eq!(result.data, expected_transposed.data);
+    }
+
+    #[test]
+    fn test_relu_derivative() {
+        let input = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, -1.0, 0.0, 2.0],
+        };
+        let expected = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 0.0, 0.0, 1.0],
+        };
+        assert_eq!(input.relu_derivative().data, expected.data, "ReLU derivative mismatch");
     }
 
     #[test]
