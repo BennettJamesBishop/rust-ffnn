@@ -85,6 +85,26 @@ impl Matrix {
             columns: matrix2.columns,
             data: product
         }
+    }                  
+
+    pub fn transpose(&self) -> Matrix {
+        // Initialize a vector to hold the transposed data
+        let mut transposed_data = vec![0.0; self.rows * self.columns];
+        
+        // Fill in the transposed data
+        for i in 0..self.rows {
+            for j in 0..self.columns {
+                // Transpose index calculation
+                transposed_data[j * self.rows + i] = self.data[i * self.columns + j];
+            }
+        }
+
+        // Create the new transposed matrix
+        Matrix {
+            rows: self.columns,
+            columns: self.rows,
+            data: transposed_data,
+        }
     }
 
     pub fn relu(&mut self) {
@@ -280,6 +300,79 @@ mod tests {
         };
 
         matrix1.dot_product(&matrix2); // Should panic
+    }
+
+    #[test]
+    fn test_matrix_transpose() {
+        let original_matrix = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        };
+
+        let expected_transposed = Matrix {
+            rows: 3,
+            columns: 2,
+            data: vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0],
+        };
+
+        let result = original_matrix.transpose();
+
+        // Assert rows and columns
+        assert_eq!(result.rows, expected_transposed.rows);
+        assert_eq!(result.columns, expected_transposed.columns);
+
+        // Assert data
+        assert_eq!(result.data, expected_transposed.data);
+    }
+
+    #[test]
+    fn test_single_row_matrix_transpose() {
+        let single_row = Matrix {
+            rows: 1,
+            columns: 3,
+            data: vec![1.0, 2.0, 3.0],
+        };
+
+        let expected_transposed = Matrix {
+            rows: 3,
+            columns: 1,
+            data: vec![1.0, 2.0, 3.0],
+        };
+
+        let result = single_row.transpose();
+
+        // Assert rows and columns
+        assert_eq!(result.rows, expected_transposed.rows);
+        assert_eq!(result.columns, expected_transposed.columns);
+
+        // Assert data
+        assert_eq!(result.data, expected_transposed.data);
+    }
+
+    #[test]
+    fn test_single_column_matrix_transpose() {
+        let single_column = Matrix {
+            rows: 3,
+            columns: 1,
+            data: vec![1.0, 2.0, 3.0],
+        };
+
+        let expected_transposed = Matrix {
+            rows: 1,
+            columns: 3,
+            data: vec![1.0, 2.0, 3.0],
+        };
+
+        let result = single_column.transpose();
+
+        // Assert rows and columns
+        assert_eq!(result.rows, expected_transposed.rows);
+        assert_eq!(result.columns, expected_transposed.columns);
+
+        // Assert data
+        assert_eq!(result.data, expected_transposed.data);
+    }
 
     #[test]
     fn test_softmax_on_data() {
@@ -315,4 +408,4 @@ mod tests {
     }
 }
     
-}
+
