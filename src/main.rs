@@ -3,8 +3,8 @@ use ndarray::{ Array2, s};
 use ndarray_csv::Array2Reader;
 use std::error::Error;
 use std::fs::File;
-mod lin_alg;
-mod neural_net;
+mod math;
+mod network;
 mod matrix;
 mod forward_prop;
 

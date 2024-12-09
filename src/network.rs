@@ -1,6 +1,6 @@
 use crate::matrix::Matrix;
 
-//This module defines the Network struct and contains the function to initiate one
+//This module defines the Network struct and contains the function to initialize one
 
 pub struct Network {
     pub layers: Vec<usize>, //number of neurons in each layer eg: [16, 12, 10]
@@ -18,10 +18,10 @@ impl Network {
 
         for i in 0..layers.len() - 1 {
             // Randomly initialize weights as matrices with dimensions (current_layer x next_layer)
-            weights.push(Matrix::random_matrix(layers[i+1], layers[i]));
+            weights.push(Matrix::new(layers[i+1], layers[i]));
             
             // Randomly initialize biases as column matrices (1 x next_layer)
-            biases.push(Matrix::random_matrix(layers[i + 1], 1));
+            biases.push(Matrix::new(layers[i + 1], 1));
         }
 
         // Create an empty data vector

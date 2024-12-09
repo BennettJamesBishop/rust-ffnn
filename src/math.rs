@@ -86,6 +86,36 @@ impl Matrix {
             data: product
         }
     }
+
+    pub fn relu(&mut self) {
+        // Apply ReLU activation in-place
+        for i in 0..self.data.len() {
+            if self.data[i] < 0.0 {
+                self.data[i] = 0.0;
+            }
+        }
+    }
+
+        /// Apply the softmax function to the entire flattened `data` vector
+    pub fn softmax(&self) -> Matrix {
+        // Find the maximum value in the data for numerical stability
+        let max_val = self.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+
+        // Subtract max_val from each element, exponentiate, and store results
+        let exp_values: Vec<f64> = self.data.iter().map(|&x| (x - max_val).exp()).collect();
+
+        // Compute the sum of all exponentials
+        let sum_exp: f64 = exp_values.iter().sum();
+
+        // Normalize each value by dividing by the sum of exponentials
+        let softmax_data: Vec<f64> = exp_values.iter().map(|&x| x / sum_exp).collect();
+
+        // Return a new matrix with the softmax values
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data: softmax_data,
+        }}
     }
 
 #[cfg(test)]
@@ -250,5 +280,39 @@ mod tests {
         };
 
         matrix1.dot_product(&matrix2); // Should panic
+
+    #[test]
+    fn test_softmax_on_data() {
+        let matrix = Matrix {
+            rows: 3,
+            columns: 3,
+            data: vec![2500.0, 2300.0, 1000.0, 2500.0, 2300.0, 1500.0, 2500.0, 2300.0, 1500.0],
+        };
+
+        // Apply softmax to the flattened data vector
+        let result = matrix.softmax();
+
+        // Expected results after applying softmax
+        let expected = vec![0.3333,0.0,0.0,0.3333,0.0,0.0,0.3333,0.0,0.0];
+
+        // Check that each value is approximately correct
+        for (result, &expected_value) in result.data.iter().zip(expected.iter()) {
+            assert!(
+                (result - expected_value).abs() < 1e-3,
+                "Expected {}, got {}",
+                expected_value,
+                result
+            );
+        }
+
+        // Validate softmax property: The sum of all probabilities in the flattened vector should be 1
+        let total_sum: f64 = result.data.iter().sum();
+        assert!(
+            (total_sum - 1.0).abs() < 1e-5,
+            "Sum of probabilities is not 1: {}",
+            total_sum
+        );
     }
+}
+    
 }
