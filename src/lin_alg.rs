@@ -1,30 +1,8 @@
+use crate::matrix::Matrix;
 
-use rand::Rng;
-#[derive(Clone)]
-pub struct Matrix {
-    pub rows: usize,
-    pub columns: usize,
-    pub data: Vec<f64>
-}
-
+//This mod contains linear algebra equations for the Matrix (add, subtract, elemt-wise multiply, dot product)
 
 impl Matrix {
-
-    pub fn random(rows: usize, columns: usize) -> Matrix {
-        let mut buffer = Vec::<f64>::with_capacity(rows * columns);
-
-        for _ in 0..rows*columns {
-            let num = rand::thread_rng().gen_range(0.0..1.0);
-            buffer.push(num);
-        }
-
-        Matrix {
-            rows: rows,
-            columns: columns,
-            data: buffer
-        }
-    }
-
     pub fn add(&self, matrix2: &Matrix) -> Matrix {
         if self.rows != matrix2.rows  {
             panic!("Cant add, matrices have different number of rows");
@@ -43,58 +21,47 @@ impl Matrix {
             columns: self.columns,
             data: buffer
         }
-
-        }
+    }
 
     pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
-            if self.rows != matrix2.rows  {
-                panic!("Cant subtract, matrices have different number of rows");
-            } else if self.columns != matrix2.columns  {
-                panic!("Cant subtract, matrices have different columns");
-            }
+        if self.rows != matrix2.rows  {
+            panic!("Cant subtract, matrices have different number of rows");
+        } else if self.columns != matrix2.columns  {
+            panic!("Cant subtract, matrices have different columns");
+        }
     
-            let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
-            for i in 0..self.data.len() {
-                    let result = self.data[i] - matrix2.data[i];
-                    buffer.push(result);
-            }
+        let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
+        for i in 0..self.data.len() {
+            let result = self.data[i] - matrix2.data[i];
+            buffer.push(result);
+        }
 
-            Matrix {
-                rows: self.rows,
-                columns: self.columns,
-                data: buffer
-            }
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data: buffer
+        }
 
-            }
+    }
 
-            pub fn multiply(&self, matrix2: &Matrix) -> Matrix {
-                if self.rows != matrix2.rows  {
-                    panic!("Cant multiply, matrices have different number of rows");
-                } else if self.columns != matrix2.columns  {
-                    panic!("Cant multiply, matrices have different columns");
-                }
+    pub fn multiply(&self, matrix2: &Matrix) -> Matrix {
+        if self.rows != matrix2.rows  {
+            panic!("Cant multiply, matrices have different number of rows");
+        } else if self.columns != matrix2.columns  {
+            panic!("Cant multiply, matrices have different columns");
+        }
         
-                let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
-                for i in 0..self.data.len() {
-                        let result = self.data[i] * matrix2.data[i];
-                        buffer.push(result);
-                }
-                Matrix {
-                    rows: self.rows,
-                    columns: self.columns,
-                    data: buffer
-                }
-    
-                }
-
-            // [0, 1, 3, 2, 4, 4]   [3, 2, 3, 5, 3, 1]
-
-            // [0,1,3]               [3, 2]
-            // [2,4,4]               [3, 5]
-            //                       [3, 1]
-
-            //                       [12, 8]
-            //                       [30, 28]
+        let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
+        for i in 0..self.data.len() {
+                let result = self.data[i] * matrix2.data[i];
+                buffer.push(result);
+            }
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data: buffer
+        }
+    }
 
     pub fn dot_product(&self, matrix2: &Matrix) -> Matrix {
         if self.columns != matrix2.rows  {
@@ -119,62 +86,11 @@ impl Matrix {
             data: product
         }
     }
-
-    pub fn relu(&mut self) {
-        // Apply ReLU activation in-place
-        for i in 0..self.data.len() {
-            if self.data[i] < 0.0 {
-                self.data[i] = 0.0;
-            }
-        }
     }
 
-        /// Apply the softmax function to the entire flattened `data` vector
-        pub fn softmax(&self) -> Matrix {
-            // Find the maximum value in the data for numerical stability
-            let max_val = self.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-    
-            // Subtract max_val from each element, exponentiate, and store results
-            let exp_values: Vec<f64> = self.data.iter().map(|&x| (x - max_val).exp()).collect();
-    
-            // Compute the sum of all exponentials
-            let sum_exp: f64 = exp_values.iter().sum();
-    
-            // Normalize each value by dividing by the sum of exponentials
-            let softmax_data: Vec<f64> = exp_values.iter().map(|&x| x / sum_exp).collect();
-    
-            // Return a new matrix with the softmax values
-            Matrix {
-                rows: self.rows,
-                columns: self.columns,
-                data: softmax_data,
-            }}
-    
-
-    }
-
-    #[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_random_matrix() {
-        let rows = 3;
-        let columns = 4;
-        let matrix = Matrix::random(rows, columns);
-
-        // Check the dimensions
-        assert_eq!(matrix.rows, rows);
-        assert_eq!(matrix.columns, columns);
-
-        // Check the data length
-        assert_eq!(matrix.data.len(), rows * columns);
-
-        // Check that all elements are within the range [0.0, 1.0)
-        for value in matrix.data {
-            assert!(value >= 0.0 && value < 1.0);
-        }
-    }
 
     #[test]
     fn test_add_matrices() {
@@ -335,38 +251,4 @@ mod tests {
 
         matrix1.dot_product(&matrix2); // Should panic
     }
-
-    #[test]
-    fn test_softmax_on_data() {
-        let matrix = Matrix {
-            rows: 3,
-            columns: 3,
-            data: vec![2500.0, 2300.0, 1000.0, 2500.0, 2300.0, 1500.0, 2500.0, 2300.0, 1500.0],
-        };
-
-        // Apply softmax to the flattened data vector
-        let result = matrix.softmax();
-
-        // Expected results after applying softmax
-        let expected = vec![0.3333,0.0,0.0,0.3333,0.0,0.0,0.3333,0.0,0.0];
-
-        // Check that each value is approximately correct
-        for (result, &expected_value) in result.data.iter().zip(expected.iter()) {
-            assert!(
-                (result - expected_value).abs() < 1e-3,
-                "Expected {}, got {}",
-                expected_value,
-                result
-            );
-        }
-
-        // Validate softmax property: The sum of all probabilities in the flattened vector should be 1
-        let total_sum: f64 = result.data.iter().sum();
-        assert!(
-            (total_sum - 1.0).abs() < 1e-5,
-            "Sum of probabilities is not 1: {}",
-            total_sum
-        );
-    }
-
 }

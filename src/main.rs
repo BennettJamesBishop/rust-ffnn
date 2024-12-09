@@ -5,6 +5,8 @@ use std::error::Error;
 use std::fs::File;
 mod lin_alg;
 mod neural_net;
+mod matrix;
+mod forward_prop;
 
 fn read_csv(path_to_file: &str) -> Result<Array2<u64>, Box<dyn Error>> {
     let file = File::open(path_to_file)?;

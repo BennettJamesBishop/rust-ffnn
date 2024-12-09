@@ -1,11 +1,12 @@
+use crate::matrix::Matrix;
 
-use crate::lin_alg::Matrix;
+//This module defines the Network struct and contains the function to initiate one
 
 pub struct Network {
-    layers: Vec<usize>, //number of neurons in each layer eg: [16, 12, 10]
-    weights: Vec<Matrix>,
-    biases: Vec<Matrix>,
-    data: Vec<Matrix>,
+    pub layers: Vec<usize>, //number of neurons in each layer eg: [16, 12, 10]
+    pub weights: Vec<Matrix>,
+    pub biases: Vec<Matrix>,
+    pub data: Vec<Matrix>,
 }
 
 impl Network {
@@ -17,10 +18,10 @@ impl Network {
 
         for i in 0..layers.len() - 1 {
             // Randomly initialize weights as matrices with dimensions (current_layer x next_layer)
-            weights.push(Matrix::random(layers[i+1], layers[i]));
+            weights.push(Matrix::random_matrix(layers[i+1], layers[i]));
             
             // Randomly initialize biases as column matrices (1 x next_layer)
-            biases.push(Matrix::random(layers[i + 1], 1));
+            biases.push(Matrix::random_matrix(layers[i + 1], 1));
         }
 
         // Create an empty data vector
@@ -34,41 +35,6 @@ impl Network {
         }
     }
 
-    pub fn forward_prop(&mut self, inputs: Matrix) -> Matrix {
-        // Validate input dimensions
-        assert!(
-            self.layers[0] == inputs.rows,
-            "Invalid number of inputs: expected {}, got {}",
-            self.layers[0],
-            inputs.rows
-        );
-
-        // Initialize activations with the input data
-        let mut current = inputs;
-        self.data = vec![current.clone()]; // Store input as the first "activation"
-
-        // Propagate through each layer
-        for i in 0..self.weights.len()  {
-            // Weighted sum: Z = W * A + b
-            current = self.weights[i]
-                .dot_product(&current) // Matrix multiplication: W * A
-                .add(&self.biases[i]); // Add biases: + b
-
-            if i < self.weights.len() - 1 {
-                // Hidden layers: Apply ReLU
-                current.relu();
-            } else {
-                // Output layer: Apply softmax
-                 current = current.softmax();
-            }
-            // Store the activations
-            self.data.push(current.clone());
-        }
-
-        // The final activation is the output of the network
-        current
-    }
-
 
 }
 
@@ -78,33 +44,68 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_forward_prop_mnist() {
-        // Network suitable for MNIST: input -> hidden -> output
-        let mut network = Network::new(vec![784, 128, 10]);
-    
-        // Create a mock input matrix representing a single MNIST image
-        // Input size: 784 rows (flattened 28x28 image), 1 column (single image)
-        let inputs = Matrix {
-            rows: 784,
-            columns: 1,
-            data: vec![0.8; 784], // Example data: all pixels set to 0.5
-        };
-    
-        // Perform forward propagation
-        let output = network.forward_prop(inputs);
-    
-        // Check output dimensions
-        assert_eq!(output.rows, 10); // Output should have 10 rows (one for each digit class)
-        assert_eq!(output.columns, 1); // Single column for the output vector
-    
-        // Ensure that the outputs are valid probabilities (e.g., between 0 and 1 if using sigmoid in the output layer)
-        for &value in &output.data {
-            assert!(value >= 0.0 && value <= 1.0, "Output value out of range: {}", value);
+    fn test_network_initialization() {
+        // Define the network architecture (number of neurons in each layer)
+        let layers = vec![4, 3, 2];
+
+        // Create a new network
+        let network = Network::new(layers.clone());
+
+        // Check the number of layers matches the input
+        assert_eq!(network.layers, layers, "Layers are not correctly initialized");
+
+        // Check the number of weight matrices (one for each connection between layers)
+        assert_eq!(
+            network.weights.len(),
+            layers.len() - 1,
+            "Incorrect number of weight matrices"
+        );
+
+        // Check the dimensions of each weight matrix
+        for i in 0..network.weights.len() {
+            assert_eq!(
+                network.weights[i].rows,
+                layers[i + 1],
+                "Incorrect number of rows in weight matrix {}",
+                i
+            );
+            assert_eq!(
+                network.weights[i].columns,
+                layers[i],
+                "Incorrect number of columns in weight matrix {}",
+                i
+            );
         }
 
-        let sum: f64 = output.data.iter().sum();
-        assert!((sum - 1.0).abs() < 1e-6, "Sum of probabilities is not 1: {}", sum);
+        // Check the number of bias matrices (one for each layer except input layer)
+        assert_eq!(
+            network.biases.len(),
+            layers.len() - 1,
+            "Incorrect number of bias matrices"
+        );
 
+        // Check the dimensions of each bias matrix
+        for i in 0..network.biases.len() {
+            assert_eq!(
+                network.biases[i].rows,
+                layers[i + 1],
+                "Incorrect number of rows in bias matrix {}",
+                i
+            );
+            assert_eq!(
+                network.biases[i].columns,
+                1,
+                "Bias matrix {} should have 1 column",
+                i
+            );
+        }
+
+        // Check the data vector is empty upon initialization
+        assert!(
+            network.data.is_empty(),
+            "Data vector should be empty upon initialization"
+        );
     }
+  
     
 }
