@@ -99,3 +99,147 @@ impl Matrix {
     }
     
     }
+
+    #[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_random_matrix() {
+        let rows = 3;
+        let columns = 4;
+        let matrix = Matrix::random(rows, columns);
+
+        // Check the dimensions
+        assert_eq!(matrix.rows, rows);
+        assert_eq!(matrix.columns, columns);
+
+        // Check the data length
+        assert_eq!(matrix.data.len(), rows * columns);
+
+        // Check that all elements are within the range [0.0, 1.0)
+        for value in matrix.data {
+            assert!(value >= 0.0 && value < 1.0);
+        }
+    }
+
+    #[test]
+    fn test_add_matrices() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let matrix2 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![5.0, 6.0, 7.0, 8.0],
+        };
+
+        let result = matrix1.add(&matrix2);
+
+        // Check dimensions
+        assert_eq!(result.rows, 2);
+        assert_eq!(result.columns, 2);
+
+        // Check data
+        assert_eq!(result.data, vec![6.0, 8.0, 10.0, 12.0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cant add, matrices have different number of rows")]
+    fn test_add_matrices_different_rows() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let matrix2 = Matrix {
+            rows: 3,
+            columns: 2,
+            data: vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        };
+
+        matrix1.add(&matrix2); // Should panic
+    }
+
+    #[test]
+    fn test_subtract_matrices() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![10.0, 20.0, 30.0, 40.0],
+        };
+        let matrix2 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![5.0, 6.0, 7.0, 8.0],
+        };
+
+        let result = matrix1.subtract(&matrix2);
+
+        // Check dimensions
+        assert_eq!(result.rows, 2);
+        assert_eq!(result.columns, 2);
+
+        // Check data
+        assert_eq!(result.data, vec![5.0, 14.0, 23.0, 32.0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cant subtract, matrices have different columns")]
+    fn test_subtract_matrices_different_columns() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let matrix2 = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        };
+
+        matrix1.subtract(&matrix2); // Should panic
+    }
+
+    #[test]
+    fn test_dot_product_matrices() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 3,
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        };
+        let matrix2 = Matrix {
+            rows: 3,
+            columns: 2,
+            data: vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0],
+        };
+
+        let result = matrix1.dot_product(&matrix2);
+
+        // Check dimensions
+        assert_eq!(result.rows, 2);
+        assert_eq!(result.columns, 2);
+
+        // Check data
+        assert_eq!(result.data, vec![58.0, 64.0, 139.0, 154.0]); // Matrix multiplication result
+    }
+
+    #[test]
+    #[should_panic(expected = "Cant do dot product, matrices have different wrong dimensions")]
+    fn test_dot_product_matrices_invalid_dimensions() {
+        let matrix1 = Matrix {
+            rows: 2,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0],
+        };
+        let matrix2 = Matrix {
+            rows: 3,
+            columns: 2,
+            data: vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0],
+        };
+
+        matrix1.dot_product(&matrix2); // Should panic
+    }
+}
