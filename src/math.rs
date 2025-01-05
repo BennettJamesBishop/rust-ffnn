@@ -138,6 +138,13 @@ impl Matrix {
         }
     }
 
+    pub fn leaky_relu(&mut self, alpha: f64) {
+        self.data.iter_mut().for_each(|x| {
+            *x = if *x > 0.0 { *x } else { alpha * *x };
+        });
+    }
+
+
     pub fn relu_derivative(&self) -> Matrix {
         let mut derivative = self.data.clone();
         for value in derivative.iter_mut() {
@@ -150,29 +157,34 @@ impl Matrix {
         }
     }
 
+    pub fn leaky_relu_derivative(&self, alpha: f64) -> Matrix {
+        let mut derivative = self.clone();
+        derivative.data.iter_mut().for_each(|x| {
+            *x = if *x > 0.0 { 1.0 } else { alpha };
+        });
+        derivative
+    }
+
 
         /// Apply the softmax function to the entire flattened `data` vector
     pub fn softmax(&self) -> Matrix {
-        // Find the maximum value in the data for numerical stability
-        let max_val = self.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
-
-        // Subtract max_val from each element, exponentiate, and store results
-        let exp_values: Vec<f64> = self.data.iter().map(|&x| (x - max_val).exp()).collect();
-
-        // Compute the sum of all exponentials
-        let sum_exp: f64 = exp_values.iter().sum();
-
-        // Normalize each value by dividing by the sum of exponentials
-        let softmax_data: Vec<f64> = exp_values.iter().map(|&x| x / sum_exp).collect();
-
-        // Return a new matrix with the softmax values
-        Matrix {
-            rows: self.rows,
-            columns: self.columns,
-            data: softmax_data,
-        }}
-    }
-
+        let mut result = self.clone();
+        for col in 0..self.columns {
+            let column_start = col * self.rows;
+            let column_end = column_start + self.rows;
+            let column = &self.data[column_start..column_end];
+    
+            let max_val = column.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+            let exp_column: Vec<f64> = column.iter().map(|x| (x - max_val).exp()).collect();
+    
+            let sum_exp: f64 = exp_column.iter().sum();
+    
+            for (i, value) in exp_column.iter().enumerate() {
+                result.data[column_start + i] = value / sum_exp;
+            }
+        }
+        result
+    }}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -467,7 +479,7 @@ mod tests {
 
     #[test]
     fn test_softmax_on_data() {
-        let matrix = Matrix {
+        let mut matrix = Matrix {
             rows: 3,
             columns: 3,
             data: vec![2500.0, 2300.0, 1000.0, 2500.0, 2300.0, 1500.0, 2500.0, 2300.0, 1500.0],
