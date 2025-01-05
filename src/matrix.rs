@@ -22,6 +22,30 @@ impl Matrix {
             data: buffer,
         }
     }
+
+    pub fn he_initialization(rows: usize, columns: usize) -> Matrix {
+        let scale = (2.0 / rows as f64).sqrt(); // He Initialization scale factor
+        let mut buffer = Vec::<f64>::with_capacity(rows * columns);
+
+        for _ in 0..rows * columns {
+            let num = rand::thread_rng().gen_range(-scale..scale);
+            buffer.push(num);
+        }
+
+        Matrix {
+            rows,
+            columns,
+            data: buffer,
+        }
+    }
+
+    pub fn zeros(rows: usize, columns: usize) -> Matrix {
+        Matrix {
+            rows,
+            columns,
+            data: vec![0.0; rows * columns],
+        }
+    }
 }
 
 #[cfg(test)]
