@@ -12,29 +12,30 @@ impl Network {
             self.layers[0],
             inputs.rows
         );
-
+    
         // Initialize activations with the input data
         let mut current = inputs;
         self.data = vec![current.clone()]; // Store input as the first "activation"
-
+    
         // Propagate through each layer
-        for i in 0..self.weights.len()  {
+        for i in 0..self.weights.len() {
             // Weighted sum: Z = W * A + b
             current = self.weights[i]
                 .dot_product(&current) // Matrix multiplication: W * A
                 .add(&self.biases[i]); // Add biases: + b
-
+    
             if i < self.weights.len() - 1 {
                 // Hidden layers: Apply ReLU
-                current.relu();
+                current.leaky_relu(0.01);
             } else {
                 // Output layer: Apply softmax
-                 current = current.softmax();
+                current = current.softmax();
             }
+    
             // Store the activations
             self.data.push(current.clone());
         }
-
+    
         // The final activation is the output of the network
         current
     }
@@ -67,7 +68,7 @@ impl Network {
                 outputs.subtract(targets) // dA = Output - Target (softmax + cross-entropy simplified)
             } else {
                 // Hidden layers: ReLU derivative
-                self.data[i + 1].relu_derivative()
+                self.data[i + 1].leaky_relu_derivative(0.01)
             };
 
             // Gradient of weights and biases
