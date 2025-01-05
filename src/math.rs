@@ -4,57 +4,67 @@ use crate::matrix::Matrix;
 
 impl Matrix {
     pub fn add(&self, matrix2: &Matrix) -> Matrix {
-        if self.rows != matrix2.rows {
-            panic!(
-                "Cannot add matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
-                self.rows, matrix2.rows
-            );
-        } else if self.columns != matrix2.columns {
-            panic!(
-                "Cannot add matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
-                self.columns, matrix2.columns
-            );
-        }
-
-        let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
-        for i in 0..self.data.len() {
-                let result = self.data[i] + matrix2.data[i];
-                buffer.push(result)
-        }
-
-        Matrix {
-            rows: self.rows,
-            columns: self.columns,
-            data: buffer
-        }
+    if self.rows != matrix2.rows {
+        panic!(
+            "Cannot add matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
+            self.rows, matrix2.rows
+        );
     }
 
-    pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
-        if self.rows != matrix2.rows {
-            panic!(
-                "Cannot subtract matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
-                self.rows, matrix2.rows
-            );
-        } else if self.columns != matrix2.columns {
-            panic!(
-                "Cannot subtract matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
-                self.columns, matrix2.columns
-            );
-        }
-    
-        let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
+    let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
+
+    if self.columns == matrix2.columns {
+        // Standard element-wise addition
         for i in 0..self.data.len() {
-            let result = self.data[i] - matrix2.data[i];
-            buffer.push(result);
+            buffer.push(self.data[i] + matrix2.data[i]);
         }
-
-        Matrix {
-            rows: self.rows,
-            columns: self.columns,
-            data: buffer
+    } else if matrix2.columns == 1 {
+        // Broadcasting: Add bias to each column of the matrix
+        for row in 0..self.rows {
+            for col in 0..self.columns {
+                buffer.push(self.data[row * self.columns + col] + matrix2.data[row]);
+            }
         }
-
+    } else {
+        panic!(
+            "Cannot add matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
+            self.columns, matrix2.columns
+        );
     }
+
+    Matrix {
+        rows: self.rows,
+        columns: self.columns,
+        data: buffer
+    }
+}
+
+pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
+    if self.rows != matrix2.rows {
+        panic!(
+            "Cannot subtract matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
+            self.rows, matrix2.rows
+        );
+    } else if self.columns != matrix2.columns {
+        panic!(
+            "Cannot subtract matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
+            self.columns, matrix2.columns
+        );
+    }
+
+    let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
+    for i in 0..self.data.len() {
+        let result = self.data[i] - matrix2.data[i];
+        buffer.push(result);
+    }
+
+    Matrix {
+        rows: self.rows,
+        columns: self.columns,
+        data: buffer
+    }
+
+}
 
     pub fn multiply(&self, matrix2: &Matrix) -> Matrix {
         if self.rows != matrix2.rows  {
@@ -165,8 +175,6 @@ impl Matrix {
         derivative
     }
 
-
-        /// Apply the softmax function to the entire flattened `data` vector
     pub fn softmax(&self) -> Matrix {
         let mut result = self.clone();
         for col in 0..self.columns {
@@ -213,7 +221,32 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Cant add, matrices have different number of rows")]
+    fn test_add_matrices_different_columns() {
+        let matrix1 = Matrix {
+            rows: 3,
+            columns: 2,
+            data: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        };
+        
+        let matrix2 = Matrix {
+            rows: 3,
+            columns: 1,
+            data: vec![0.5, 1.0, 1.5],
+        };
+        
+        let result = matrix1.add(&matrix2);
+        println!("{:?}", result.data); // [1.5, 2.5, 4.0, 5.0, 6.5, 7.5]
+        // Check dimensions
+        assert_eq!(result.rows, 3);
+        assert_eq!(result.columns, 2);
+
+        // Check data
+        assert_eq!(result.data, vec![1.5, 2.5, 4.0, 5.0, 6.5, 7.5]);
+    }        
+    
+
+    #[test]
+    #[should_panic(expected = "Cannot add matrices: row mismatch. Matrix 1 has 2 rows, Matrix 2 has 3 rows.")]
     fn test_add_matrices_different_rows() {
         let matrix1 = Matrix {
             rows: 2,

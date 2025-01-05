@@ -21,7 +21,7 @@ impl Network {
             weights.push(Matrix::he_initialization(layers[i+1], layers[i]));
             
             // Randomly initialize biases as column matrices (1 x next_layer)
-            biases.push(Matrix::zeros(layers[i + 1], 2000)); //TODO: fix magix number 4200
+            biases.push(Matrix::zeros(layers[i + 1], 1)); 
         }
 
         // Create an empty data vector
