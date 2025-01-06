@@ -49,53 +49,51 @@ impl Network {
         // Validate input dimensions
         assert_eq!(self.layers[0], inputs.rows, "Mismatch in input size.");
         assert_eq!(self.layers.last().unwrap(), &targets.rows, "Mismatch in output size.");
-
+    
         // Forward propagate to compute activations
         let outputs = self.forward_prop(inputs.clone());
-
+    
         // Initialize gradients
         let mut d_weights = vec![];
         let mut d_biases = vec![];
-
+    
         // Compute the error at the output layer
         let mut error = outputs.subtract(targets); // Error: Output - Target
-
+    
         // Backward propagate through layers
         for i in (0..self.weights.len()).rev() {
             // Derivative of activation function
-            let activation_derivative = if i == self.weights.len() - 1 {
+            let activation_derivative = if i == self.weights.len() - 1 {   
                 // Output layer: softmax derivative
                 outputs.subtract(targets) // dA = Output - Target (softmax + cross-entropy simplified)
             } else {
                 // Hidden layers: ReLU derivative
                 self.data[i + 1].leaky_relu_derivative(0.01)
             };
-
+    
             // Gradient of weights and biases
             let delta = error.multiply(&activation_derivative);
             let d_weight = delta.dot_product(&self.data[i].transpose());
-            let d_bias = delta.clone();
-
+            let d_bias = delta.sum_columns(); // Aggregate bias gradients
+    
             // Store gradients
             d_weights.insert(0, d_weight);
-            d_biases.insert(0, d_bias.clone());
-
+            d_biases.insert(0, d_bias);
+    
             // Compute error for the next layer
             if i > 0 {
                 error = self.weights[i].transpose().dot_product(&delta);
             }
         }
-
+    
         // Update weights and biases using gradients
         for i in 0..self.weights.len() {
             self.weights[i] = self.weights[i].subtract(&d_weights[i].scale(learning_rate));
             self.biases[i] = self.biases[i].subtract(&d_biases[i].scale(learning_rate));
-                
         }
-
-
-
     }
+    
+    
     
 }
 
