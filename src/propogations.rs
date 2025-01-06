@@ -12,13 +12,23 @@ impl Network {
             self.layers[0],
             inputs.rows
         );
-    
+
         // Initialize activations with the input data
         let mut current = inputs;
         self.data = vec![current.clone()]; // Store input as the first "activation"
     
         // Propagate through each layer
         for i in 0..self.weights.len() {
+            // PRE-ACTIVATIONS FOR DEBUGGING Z = W * A + b
+        let pre_activation = self.weights[i]
+        .dot_product(&current)
+        .add(&self.biases[i]);
+
+    println!(
+        "Layer {} pre-activations: {:?}",
+        i,
+        &pre_activation.data[..std::cmp::min(10, pre_activation.data.len())]
+    );
             // Weighted sum: Z = W * A + b
             current = self.weights[i]
                 .dot_product(&current) // Matrix multiplication: W * A
@@ -35,7 +45,7 @@ impl Network {
             // Store the activations
             self.data.push(current.clone());
         }
-    
+
         // The final activation is the output of the network
         current
     }
@@ -52,14 +62,21 @@ impl Network {
     
         // Forward propagate to compute activations
         let outputs = self.forward_prop(inputs.clone());
-    
+        // ACTIVATIONS FOR DEBUGGING
+for (layer_idx, activations) in self.data.iter().enumerate() {
+    println!(
+        "Layer {} activations: {:?}",
+        layer_idx,
+        &activations.data[..std::cmp::min(10, activations.data.len())]
+    );
+}
         // Initialize gradients
         let mut d_weights = vec![];
         let mut d_biases = vec![];
     
         // Compute the error at the output layer
         let mut error = outputs.subtract(targets); // Error: Output - Target
-    
+        
         // Backward propagate through layers
         for i in (0..self.weights.len()).rev() {
             // Derivative of activation function
@@ -79,7 +96,7 @@ impl Network {
             // Store gradients
             d_weights.insert(0, d_weight);
             d_biases.insert(0, d_bias);
-    
+
             // Compute error for the next layer
             if i > 0 {
                 error = self.weights[i].transpose().dot_product(&delta);
@@ -87,7 +104,7 @@ impl Network {
         }
     
         // Update weights and biases using gradients
-        for i in 0..self.weights.len() {
+        for i in (0..self.weights.len()) {
             self.weights[i] = self.weights[i].subtract(&d_weights[i].scale(learning_rate));
             self.biases[i] = self.biases[i].subtract(&d_biases[i].scale(learning_rate));
         }
