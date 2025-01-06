@@ -12,18 +12,38 @@ mod propogations;
 mod model_saving;
 
 fn read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
+    use csv::StringRecord;
+    use ndarray::Array2;
+
     let file = File::open(path_to_file)?;
     let mut reader = ReaderBuilder::new().has_headers(true).from_reader(file);
 
-    // Read the entire CSV into a 2D array
-    let raw_data: Array2<u64> = reader.deserialize_array2((2000, 785))?;
-    
+    // Read the header to determine dimensions dynamically
+    let headers = reader.headers()?.len();
+    let mut raw_data = Vec::new();
+
+    for result in reader.records() {
+        let record: StringRecord = result?;
+        let row: Vec<f64> = record
+            .iter()
+            .map(|value| value.parse::<f64>().unwrap_or(0.0)) // Convert to f64 or use 0.0 for null/empty
+            .collect();
+        raw_data.push(row);
+    }
+
+    // Convert the vector of rows into an Array2<f64>
+    let num_rows = raw_data.len();
+    let num_cols = headers;
+    let flat_data: Vec<f64> = raw_data.into_iter().flatten().collect();
+    let array_data = Array2::from_shape_vec((num_rows, num_cols), flat_data)?;
+
     // Split the data into labels (first column) and features (remaining columns)
-    let y_train = raw_data.column(0).to_owned().to_vec(); // Labels as a vector
-    let x_train = raw_data.slice(s![.., 1..]).map(|&x| x as f64); // Features converted to f64
+    let y_train = array_data.column(0).to_owned().map(|&x| x as u64).to_vec(); // Labels as a vector
+    let x_train = array_data.slice(s![.., 1..]).map(|&x| x as f64); // Features converted to f64
 
     Ok((x_train, y_train))
 }
+
 
 impl Network {
 fn gradient_descent(
@@ -32,16 +52,23 @@ fn gradient_descent(
     targets: &Matrix,
     epochs: usize,
 ) {
+    println!("Initial weights (Layer 0): {:?}", &self.weights[0].data[..10]);
+    println!("Initial biases (Layer 0): {:?}", &self.biases[0].data[..10]);
+    // println!("Initial weights (Layer 1): {:?}", &self.weights[1].data[..10]);
+    // println!("Initial biases (Layer 1): {:?}", &self.biases[1].data[..10]);
+    // println!("Initial weights (Layer 2): {:?}", &self.weights[2].data[..10]);
+    // println!("Initial biases (Layer 2): {:?}", &self.biases[2].data[..10]);
+
     for epoch in 0..epochs {
-        let initial_learning_rate = 0.05;
-        let decay_rate = 0.05;
+        let initial_learning_rate = 0.0001;
+        let decay_rate = 0.01;
         let learning_rate = initial_learning_rate / (1.0 + epoch as f64 * decay_rate); // Decay rate < 1.0
         // Perform backpropagation for each epoch
         self.backprop(inputs, targets, learning_rate);
 
         // Optionally, compute and print the loss to track progress
         let outputs = self.forward_prop(inputs.clone());
-        if epoch % 5 == 0 {
+        if epoch % 2 == 0 {
                     // Calculate the loss
         let loss = self.categorical_cross_entropy(targets, &outputs);
         println!("Epoch {}: Loss = {:.6}", epoch, loss);
@@ -65,7 +92,7 @@ fn main() {
             // Convert the feature matrix to your `Matrix` structure
             let input_matrix = Matrix {
                 rows: x_train_normalized.nrows(),  // 784
-                columns: x_train_normalized.ncols(), // 42000
+                columns: x_train_normalized.ncols(), // Number of
                 data: x_train_normalized.iter().cloned().collect(),
             };
 
@@ -92,10 +119,10 @@ fn main() {
             );
 
             // Initialize the network
-            let mut network = Network::new(vec![784, 128, 10]); // Example architecture
+            let mut network = Network::new(vec![784, 70, 10]); // Example architecture
 
             // Train the network
-            network.gradient_descent(&input_matrix, &target_matrix, 10);
+            network.gradient_descent(&input_matrix, &target_matrix, 3);
 
             // Save the model
             network.save_model("mnist_model.bin").expect("Failed to save model");
