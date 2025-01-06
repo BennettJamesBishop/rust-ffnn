@@ -24,20 +24,13 @@ impl Matrix {
     }
 
     pub fn he_initialization(rows: usize, columns: usize) -> Matrix {
-        let scale = (2.0 / rows as f64).sqrt(); // He Initialization scale factor
-        let mut buffer = Vec::<f64>::with_capacity(rows * columns);
-
-        for _ in 0..rows * columns {
-            let num = rand::thread_rng().gen_range(-scale..scale);
-            buffer.push(num);
-        }
-
-        Matrix {
-            rows,
-            columns,
-            data: buffer,
-        }
+        let scale = (2.0 / columns as f64).sqrt(); // Scale by incoming connections
+        let data = (0..rows * columns)
+            .map(|_| rand::thread_rng().gen_range(-scale..scale))
+            .collect();
+        Matrix { rows, columns, data }
     }
+    
 
     pub fn zeros(rows: usize, columns: usize) -> Matrix {
         Matrix {
