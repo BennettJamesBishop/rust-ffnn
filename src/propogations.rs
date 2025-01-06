@@ -72,7 +72,7 @@ impl Network {
             };
     
             // Gradient of weights and biases
-            let delta = error.multiply(&activation_derivative);
+            let delta = error.multiply(&activation_derivative).scale(1.0 / inputs.columns as f64);
             let d_weight = delta.dot_product(&self.data[i].transpose());
             let d_bias = delta.sum_columns(); // Aggregate bias gradients
     
