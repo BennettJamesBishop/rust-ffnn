@@ -170,32 +170,10 @@ pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
         }
     }
 
-    pub fn relu(&mut self) {
-        // Apply ReLU activation in-place
-        for i in 0..self.data.len() {
-            if self.data[i] < 0.0 {
-                self.data[i] = 0.0;
-            }
-        }
-    }
-
     pub fn leaky_relu(&mut self, alpha: f64) {
         self.data.iter_mut().for_each(|x| {
             *x = if *x > 0.0 { *x } else { alpha * *x };
         });
-    }
-
-
-    pub fn relu_derivative(&self) -> Matrix {
-        let mut derivative = self.data.clone();
-        for value in derivative.iter_mut() {
-            *value = if *value > 0.0 { 1.0 } else { 0.0 };
-        }
-        Matrix {
-            rows: self.rows,
-            columns: self.columns,
-            data: derivative,
-        }
     }
 
     pub fn leaky_relu_derivative(&self, alpha: f64) -> Matrix {
@@ -223,7 +201,8 @@ pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
             }
         }
         result
-    }}
+    }
+    }
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -484,23 +463,23 @@ mod tests {
     }
 
     #[test]
-    fn test_relu() {
-        let mut matrix = Matrix {
-            rows: 2,
-            columns: 3,
-            data: vec![-1.0, 2.0, -3.0, 4.0, 0.0, -5.0],
-        };
+    // fn test_relu() {
+    //     let mut matrix = Matrix {
+    //         rows: 2,
+    //         columns: 3,
+    //         data: vec![-1.0, 2.0, -3.0, 4.0, 0.0, -5.0],
+    //     };
 
-        matrix.relu();
+    //     matrix.relu();
 
-        let expected = Matrix {
-            rows: 2,
-            columns: 3,
-            data: vec![0.0, 2.0, 0.0, 4.0, 0.0, 0.0],
-        };
+    //     let expected = Matrix {
+    //         rows: 2,
+    //         columns: 3,
+    //         data: vec![0.0, 2.0, 0.0, 4.0, 0.0, 0.0],
+    //     };
 
-        assert_eq!(matrix.data, expected.data);
-    }
+    //     assert_eq!(matrix.data, expected.data);
+    // }
 
 
     #[test]
@@ -552,19 +531,19 @@ mod tests {
     }
 
     #[test]
-    fn test_relu_derivative() {
-        let input = Matrix {
-            rows: 2,
-            columns: 2,
-            data: vec![1.0, -1.0, 0.0, 2.0],
-        };
-        let expected = Matrix {
-            rows: 2,
-            columns: 2,
-            data: vec![1.0, 0.0, 0.0, 1.0],
-        };
-        assert_eq!(input.relu_derivative().data, expected.data, "ReLU derivative mismatch");
-    }
+    // fn test_relu_derivative() {
+    //     let input = Matrix {
+    //         rows: 2,
+    //         columns: 2,
+    //         data: vec![1.0, -1.0, 0.0, 2.0],
+    //     };
+    //     let expected = Matrix {
+    //         rows: 2,
+    //         columns: 2,
+    //         data: vec![1.0, 0.0, 0.0, 1.0],
+    //     };
+    //     assert_eq!(input.relu_derivative().data, expected.data, "ReLU derivative mismatch");
+    // }
 
     #[test]
     fn test_softmax_on_data() {
