@@ -87,8 +87,33 @@ impl Network {
         }
     }
     
+    pub fn train(
+        &mut self,
+        inputs: &Matrix,
+        targets: &Matrix,
+        epochs: usize,
+    ) {
     
+        for epoch in 0..epochs {
+            let initial_rate = 0.0001;
+            let decay_rate = 0.000001;
+            let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
     
+            let predictions = self.forward_prop(inputs.clone());
+            // Perform backpropagation for each epoch
+            self.backprop(&predictions, targets, learning_rate);
+    
+            // Optionally, compute and print the loss to track progress
+            let outputs = self.forward_prop(inputs.clone());
+            if epoch % 2 == 0 {
+                        // Calculate the loss
+            let loss = self.categorical_cross_entropy(targets, &outputs);
+            println!("Epoch {}: Loss = {:.6}", epoch, loss);
+            
+            }
+    
+        }
+    }
 }
 
 #[cfg(test)]

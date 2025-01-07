@@ -1,116 +1,16 @@
-use csv::ReaderBuilder;
-use ndarray::{ Array2, s};
-use std::error::Error;
-use std::fs::File;
 mod math;
 mod network;
 mod matrix;
 use matrix::Matrix;
 use network::Network;
 mod propogations;
-mod model_saving;
-
-fn read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
-    use csv::StringRecord;
-    use ndarray::Array2;
-
-    let file = File::open(path_to_file)?;
-    let mut reader = ReaderBuilder::new().has_headers(true).from_reader(file);
-
-    // Read the header to determine dimensions dynamically
-    let headers = reader.headers()?.len();
-    let mut raw_data = Vec::new();
-
-    for result in reader.records() {
-        let record: StringRecord = result?;
-        let row: Vec<f64> = record
-            .iter()
-            .map(|value| value.parse::<f64>().unwrap_or(0.0)) // Convert to f64 or use 0.0 for null/empty
-            .collect();
-        raw_data.push(row);
-    }
-
-    // Convert the vector of rows into an Array2<f64>
-    let num_rows = raw_data.len();
-    let num_cols = headers;
-    let flat_data: Vec<f64> = raw_data.into_iter().flatten().collect();
-    let array_data = Array2::from_shape_vec((num_rows, num_cols), flat_data)?;
-
-    // Split the data into labels (first column) and features (remaining columns)
-    let y_train = array_data.column(0).to_owned().map(|&x| x as u64).to_vec(); // Labels as a vector
-    let x_train = array_data.slice(s![.., 1..]).map(|&x| x as f64); // Features converted to f64
-
-    Ok((x_train, y_train))
-}
-
-impl Network {
-fn train(
-    &mut self,
-    inputs: &Matrix,
-    targets: &Matrix,
-    epochs: usize,
-) {
-
-    for epoch in 0..epochs {
-        let initial_rate = 0.1;
-        let decay_rate = 0.0001;
-        let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
-
-        let predictions = self.forward_prop(inputs.clone());
-        // Perform backpropagation for each epoch
-        self.backprop(&predictions, targets, learning_rate);
-
-        // Optionally, compute and print the loss to track progress
-        let outputs = self.forward_prop(inputs.clone());
-        if epoch % 2 == 0 {
-                    // Calculate the loss
-        let loss = self.categorical_cross_entropy(targets, &outputs);
-        println!("Epoch {}: Loss = {:.6}", epoch, loss);
-        
-        }
-
-    }
-}
-}
-fn read_first_n_samples(path_to_file: &str, n: usize) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
-    use csv::StringRecord;
-    use ndarray::{s, Array2};
-    use std::fs::File;
-
-    let file = File::open(path_to_file)?;
-    let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(file);
-
-    // Read all rows but limit to `n` samples
-    let mut raw_data = Vec::new();
-    for (i, result) in reader.records().enumerate() {
-        if i >= n {
-            break;
-        }
-        let record: StringRecord = result?;
-        let row: Vec<f64> = record
-            .iter()
-            .map(|value| value.parse::<f64>().unwrap_or(0.0)) // Convert to f64 or use 0.0 for null/empty
-            .collect();
-        raw_data.push(row);
-    }
-
-    // Convert the vector of rows into an Array2<f64>
-    let num_rows = raw_data.len();
-    let num_cols = raw_data[0].len();
-    let flat_data: Vec<f64> = raw_data.into_iter().flatten().collect();
-    let array_data = Array2::from_shape_vec((num_rows, num_cols), flat_data)?;
-
-    // Split the data into labels (first column) and features (remaining columns)
-    let y_train: Vec<u64> = array_data.column(0).to_owned().iter().map(|&x| x as u64).collect();
-    let x_train = array_data.slice(s![.., 1..]).to_owned();
-
-    Ok((x_train, y_train))
-}
-
+mod helpers;
+use crate::helpers::read_first_n_samples; //Add read_csv once necessary
 
 fn main() {
-    //For now use this for sake of overfitting, once model is able to learn, replace this with read_csv()
-    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 5) {
+    //For now use read_first_n_samples() for small training, once model is able to learn, replace this line with:
+    //match read_csv("fashion-mnist_test_first_2000.csv") {
+    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 100) {
         Ok((x_train, y_train)) => {
             println!("Data successfully loaded.");
             println!("Shape of X (features): {:?}", x_train.dim());
@@ -200,7 +100,7 @@ fn test_train_function() {
     };
 
     // Train the network
-    network.gradient_descent(&inputs, &targets,   10000);
+    network.train(&inputs, &targets,   10000);
 
     // Check if the loss decreases after training
     let loss_after: f64 = targets
