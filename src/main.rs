@@ -114,9 +114,11 @@ fn main() {
             println!("Data successfully loaded.");
             println!("Shape of X (features): {:?}", x_train.dim());
             println!("Shape of Y (labels): {:?}", y_train.len());
-
+            
             // Normalize and transpose features
-            let x_train_normalized = x_train.mapv(|x| (x / 255.0) * 2.0 - 1.0).reversed_axes(); // Now (784, 42000)
+            let mean = x_train.mean().unwrap();
+            let std = x_train.std(0.0);
+            let x_train_normalized = x_train.mapv(|x| (x - mean) / std).reversed_axes(); // Now (784, 42000)
             
             // Convert the feature matrix to your `Matrix` structure
             let input_matrix = Matrix {
