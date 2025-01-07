@@ -13,20 +13,24 @@ impl Network {
             targets.columns, predictions.columns,
             "Targets and predictions must have the same number of columns (samples)"
         );
-
+    
         let epsilon = 1e-10; // Prevent log(0)
         let mut loss = 0.0;
-
+    
         for col in 0..targets.columns {
             for row in 0..targets.rows {
                 let t = targets.data[row * targets.columns + col]; // Target value
-                let p = predictions.data[row * predictions.columns + col].max(epsilon); // Predicted probability
-                loss += t * p.ln();
+                if t == 1.0 { // Only consider the correct class
+                    let p = predictions.data[row * predictions.columns + col].max(epsilon); // Predicted probability
+                    loss -= p.ln(); // Add the negative log likelihood
+                    break; // Skip other classes (since only one t == 1.0 per sample)
+                }
             }
         }
-
-        -loss / targets.columns as f64 // Normalize by the number of samples
+    
+        loss / targets.columns as f64 // Normalize by the number of samples
     }
+    
 
     pub fn save_model(&self, file_path: &str) -> Result<(), std::io::Error> {
         let mut file = std::fs::File::create(file_path)?;
@@ -103,14 +107,14 @@ pub fn test_accuracy(&mut self, inputs: &Matrix, targets: &Matrix) -> f64 {
 
     // Perform forward propagation for all inputs at once
     let outputs = self.forward_prop(inputs.clone());
-
+    println!("Output probabailities: {:?}", outputs.data[..10].to_vec());
     // Debug softmax outputs
     let sum_probs: Vec<f64> = outputs
         .data
         .chunks(outputs.rows)
         .map(|column| column.iter().sum())
         .collect();
-    println!("Sum of probabilities for each sample: {:?}", &sum_probs[..10]);
+    println!("Sum of probabilities for each sample: {:?}", &sum_probs[..2]);
 
     // Predicted classes
     let predicted_classes: Vec<usize> = outputs
@@ -125,7 +129,7 @@ pub fn test_accuracy(&mut self, inputs: &Matrix, targets: &Matrix) -> f64 {
                 .unwrap()
         })
         .collect();
-    println!("Predicted classes: {:?}", &predicted_classes[..10]);
+    println!("Predicted classes: {:?}", &predicted_classes[..4]);
 
     // True classes
     let true_classes: Vec<usize> = targets
@@ -140,7 +144,7 @@ pub fn test_accuracy(&mut self, inputs: &Matrix, targets: &Matrix) -> f64 {
                 .unwrap()
         })
         .collect();
-    println!("True classes: {:?}", &true_classes[..10]);
+    println!("True classes: {:?}", &true_classes[..4]);
 
     // Calculate accuracy
     let correct = predicted_classes
