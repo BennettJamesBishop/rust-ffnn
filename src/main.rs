@@ -1,6 +1,5 @@
 use csv::ReaderBuilder;
 use ndarray::{ Array2, s};
-use ndarray_csv::Array2Reader;
 use std::error::Error;
 use std::fs::File;
 mod math;
@@ -44,7 +43,6 @@ fn read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error
     Ok((x_train, y_train))
 }
 
-
 impl Network {
 fn gradient_descent(
     &mut self,
@@ -52,17 +50,12 @@ fn gradient_descent(
     targets: &Matrix,
     epochs: usize,
 ) {
-    println!("Initial weights (Layer 0): {:?}", &self.weights[0].data[..10]);
-    println!("Initial biases (Layer 0): {:?}", &self.biases[0].data[..10]);
-    // println!("Initial weights (Layer 1): {:?}", &self.weights[1].data[..10]);
-    // println!("Initial biases (Layer 1): {:?}", &self.biases[1].data[..10]);
-    // println!("Initial weights (Layer 2): {:?}", &self.weights[2].data[..10]);
-    // println!("Initial biases (Layer 2): {:?}", &self.biases[2].data[..10]);
 
     for epoch in 0..epochs {
-        let initial_learning_rate = 0.0001;
-        let decay_rate = 0.01;
-        let learning_rate = initial_learning_rate / (1.0 + epoch as f64 * decay_rate); // Decay rate < 1.0
+        let initial_rate = 0.1;
+let decay_rate = 0.0001;
+let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
+
         // Perform backpropagation for each epoch
         self.backprop(inputs, targets, learning_rate);
 
@@ -78,21 +71,57 @@ fn gradient_descent(
     }
 }
 }
+fn read_first_n_samples(path_to_file: &str, n: usize) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
+    use csv::StringRecord;
+    use ndarray::{s, Array2};
+    use std::fs::File;
+
+    let file = File::open(path_to_file)?;
+    let mut reader = csv::ReaderBuilder::new().has_headers(true).from_reader(file);
+
+    // Read all rows but limit to `n` samples
+    let mut raw_data = Vec::new();
+    for (i, result) in reader.records().enumerate() {
+        if i >= n {
+            break;
+        }
+        let record: StringRecord = result?;
+        let row: Vec<f64> = record
+            .iter()
+            .map(|value| value.parse::<f64>().unwrap_or(0.0)) // Convert to f64 or use 0.0 for null/empty
+            .collect();
+        raw_data.push(row);
+    }
+
+    // Convert the vector of rows into an Array2<f64>
+    let num_rows = raw_data.len();
+    let num_cols = raw_data[0].len();
+    let flat_data: Vec<f64> = raw_data.into_iter().flatten().collect();
+    let array_data = Array2::from_shape_vec((num_rows, num_cols), flat_data)?;
+
+    // Split the data into labels (first column) and features (remaining columns)
+    let y_train: Vec<u64> = array_data.column(0).to_owned().iter().map(|&x| x as u64).collect();
+    let x_train = array_data.slice(s![.., 1..]).to_owned();
+
+    Ok((x_train, y_train))
+}
+
 
 fn main() {
-    match read_csv("output_first_2000.csv") {
+    //For now use this for sake of overfitting, once model is able to learn, replace this with read_csv()
+    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 5) {
         Ok((x_train, y_train)) => {
             println!("Data successfully loaded.");
             println!("Shape of X (features): {:?}", x_train.dim());
             println!("Shape of Y (labels): {:?}", y_train.len());
 
             // Normalize and transpose features
-            let x_train_normalized = x_train.mapv(|x| x / 255.0).reversed_axes(); // Now (784, 42000)
-
+            let x_train_normalized = x_train.mapv(|x| (x / 255.0) * 2.0 - 1.0).reversed_axes(); // Now (784, 42000)
+            
             // Convert the feature matrix to your `Matrix` structure
             let input_matrix = Matrix {
-                rows: x_train_normalized.nrows(),  // 784
-                columns: x_train_normalized.ncols(), // Number of
+                rows: x_train_normalized.nrows(),  
+                columns: x_train_normalized.ncols(), 
                 data: x_train_normalized.iter().cloned().collect(),
             };
 
