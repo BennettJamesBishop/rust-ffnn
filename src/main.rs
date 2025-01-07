@@ -44,7 +44,7 @@ fn read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error
 }
 
 impl Network {
-fn gradient_descent(
+fn train(
     &mut self,
     inputs: &Matrix,
     targets: &Matrix,
@@ -53,11 +53,12 @@ fn gradient_descent(
 
     for epoch in 0..epochs {
         let initial_rate = 0.1;
-let decay_rate = 0.0001;
-let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
+        let decay_rate = 0.0001;
+        let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
 
+        let predictions = self.forward_prop(inputs.clone());
         // Perform backpropagation for each epoch
-        self.backprop(inputs, targets, learning_rate);
+        self.backprop(&predictions, targets, learning_rate);
 
         // Optionally, compute and print the loss to track progress
         let outputs = self.forward_prop(inputs.clone());
@@ -153,7 +154,7 @@ fn main() {
             let mut network = Network::new(vec![784, 70, 10]); // Example architecture
 
             // Train the network
-            network.gradient_descent(&input_matrix, &target_matrix, 3);
+            network.train(&input_matrix, &target_matrix, 3);
 
             // Save the model
             network.save_model("mnist_model.bin").expect("Failed to save model");

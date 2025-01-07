@@ -40,22 +40,16 @@ impl Network {
     
     pub fn backprop(
         &mut self,
-        inputs: &Matrix,
+        predictions: &Matrix,
         targets: &Matrix,
         learning_rate: f64,
-    ) {
-        // Validate input dimensions
-        assert_eq!(self.layers[0], inputs.rows, "Mismatch in input size.");
-        assert_eq!(self.layers.last().unwrap(), &targets.rows, "Mismatch in output size.");
-    
-        // Forward propagate to compute activations
-        let outputs = self.forward_prop(inputs.clone());
+    ) {     
         // Initialize gradients
         let mut d_weights = vec![];
         let mut d_biases = vec![];
     
         // Compute the error at the output layer
-        let mut error = outputs.subtract(targets); // Error: Output - Target
+        let mut error = predictions.subtract(targets); // Error: Output - Target
         
         // Backward propagate through layers
         for i in (0..self.weights.len()).rev() {
