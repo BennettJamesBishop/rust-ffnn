@@ -16,9 +16,9 @@ impl Network {
         // Initialize activations with the input data
         let mut current = inputs;
         self.data = vec![current.clone()]; // Store input as the first "activation"
-
         // Propagate through each layer
         for i in 0..self.weights.len() {
+            println!("Layer {} activations before forward propogation: {:?}", i, &current.data[..3]);
             // Weighted sum: Z = W * A + b
             current = self.weights[i]
                 .dot_product(&current) // Matrix multiplication: W * A
@@ -26,12 +26,12 @@ impl Network {
     
             if i < self.weights.len() - 1 {
                 // Hidden layers: Apply ReLU
-                current.leaky_relu(0.01);
+                current.leaky_relu(0.001);
             } else {
                 // Output layer: Apply softmax
                 current = current.softmax();
             }
-            println!("Layer {} activations: {:?}", i, &current.data[..3]);
+            println!("Layer {} activations after forward propogation: {:?}", i, &current.data[..3]);
             // Store the activations
             self.data.push(current.clone());
         }
@@ -62,17 +62,17 @@ impl Network {
             // Derivative of activation function
             let activation_derivative = if i == self.weights.len() - 1 {   
                 // Output layer: softmax derivative
-                outputs.subtract(targets) // dA = Output - Target (softmax + cross-entropy simplified)
+                error.clone() // dA = Output - Target (softmax + cross-entropy simplified)
             } else {
                 // Hidden layers: ReLU derivative
-                self.data[i + 1].leaky_relu_derivative(0.01)
+                self.data[i + 1].leaky_relu_derivative(0.001)
             };
     
             // Gradient of weights and biases
-            let delta = error.multiply(&activation_derivative).scale(learning_rate);
+            let delta = error.multiply(&activation_derivative);
             let d_weight = delta.dot_product(&self.data[i].transpose());
-            let d_bias = delta.sum_columns(); // Aggregate bias gradients
-
+            let d_bias = delta.average_columns(); // Average bias gradients
+            
             // Store gradients
             d_weights.insert(0, d_weight);
             d_biases.insert(0, d_bias);
@@ -85,10 +85,11 @@ impl Network {
     
         // Update weights and biases using gradients
         for i in (0..self.weights.len()) {
-            println!("Before update, weights [layer {}]: {:?}", i, &self.weights[i].data[..4]);
+           // println!("Before update, weights [layer {}]: {:?}", i, &self.weights[i].data[..5]);
+            // println!("Before update, biases [layer {}]: {:?}", i, &self.weights[i].data[..5]);
             self.weights[i] = self.weights[i].subtract(&d_weights[i].scale(learning_rate));
             self.biases[i] = self.biases[i].subtract(&d_biases[i].scale(learning_rate));
-            println!("After update, weights [layer {}]: {:?}", i, &self.weights[i].data[..4]);
+            // println!("After update, weights [layer {}]: {:?}", i, &self.weights[i].data[..4]);
         }
     }
     

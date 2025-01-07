@@ -39,62 +39,54 @@ impl Matrix {
     }
 }
 
-// Used when for aggregating bias derivs to adjust biases
-pub fn sum_columns(&self) -> Matrix {
-    if self.columns == 1 {
-        // Already a column vector
-        return self.clone();
-    }
+    /// Sum the columns of the matrix (reduce to a single column vector)
+    pub fn sum_columns(&self) -> Matrix {
+        let mut result = vec![0.0; self.rows];
 
-    let mut result = vec![0.0; self.rows];
-    for row in 0..self.rows {
-        for col in 0..self.columns {
-            result[row] += self.data[row * self.columns + col];
-        }
-    }
-
-    Matrix {
-        rows: self.rows,
-        columns: 1,
-        data: result,
-    }
-}
-
-pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
-    if self.rows != matrix2.rows {
-        panic!(
-            "Cannot subtract matrices: row mismatch. Matrix 1 has {} rows, Matrix 2 has {} rows.",
-            self.rows, matrix2.rows
-        );
-    }
-
-    let mut buffer = Vec::<f64>::with_capacity(self.rows * self.columns);
-
-    if self.columns == matrix2.columns {
-        // Standard element-wise addition
-        for i in 0..self.data.len() {
-            buffer.push(self.data[i] - matrix2.data[i]);
-        }
-    } else if matrix2.columns == 1 {
-        // Broadcasting: Subtract bias to each column of the matrix
         for row in 0..self.rows {
             for col in 0..self.columns {
-                buffer.push(self.data[row * self.columns + col] - matrix2.data[row]);
+                result[row] += self.data[row * self.columns + col];
             }
         }
-    } else {
-        panic!(
-            "Cannot subtract matrices: column mismatch. Matrix 1 has {} columns, Matrix 2 has {} columns.",
-            self.columns, matrix2.columns
-        );
+
+        Matrix {
+            rows: self.rows,
+            columns: 1,
+            data: result,
+        }
     }
 
+    /// Average the columns of the matrix (reduce to a single column vector)
+    pub fn average_columns(&self) -> Matrix {
+        let sum_matrix = self.sum_columns(); // Sum the columns
+        let batch_size = self.columns as f64;
+
+        Matrix {
+            rows: sum_matrix.rows,
+            columns: 1,
+            data: sum_matrix.data.iter().map(|&val| val / batch_size).collect(),
+        }
+    }
+
+pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
+    // Ensure both matrices have the same dimensions
+    assert_eq!(self.rows, matrix2.rows, "Row count mismatch in subtract()");
+    assert_eq!(self.columns, matrix2.columns, "Column count mismatch in subtract()");
+
+    // Perform element-wise subtraction
+    let data: Vec<f64> = self
+        .data
+        .iter()
+        .zip(&matrix2.data)
+        .map(|(a, b)| a - b)
+        .collect();
+
+    // Return the result as a new Matrix
     Matrix {
         rows: self.rows,
         columns: self.columns,
-        data: buffer
+        data,
     }
-
 }
 
     pub fn multiply(&self, matrix2: &Matrix) -> Matrix {
@@ -295,46 +287,7 @@ mod tests {
         assert_eq!(result.data, vec![5.0, 14.0, 23.0, 32.0]);
     }
 
-    #[test]
-
-    fn test_subtract_matrices_different_columns() {
-            // Create a matrix with multiple columns
-            let matrix1 = Matrix {
-                rows: 3,
-                columns: 4,
-                data: vec![
-                    1.0, 2.0, 3.0, 4.0,  // Row 1
-                    5.0, 6.0, 7.0, 8.0,  // Row 2
-                    9.0, 10.0, 11.0, 12.0, // Row 3
-                ],
-            };
-    
-            // Create a column vector for broadcasting
-            let matrix2 = Matrix {
-                rows: 3,
-                columns: 1,
-                data: vec![1.0, 2.0, 3.0], // One value for each row
-            };
-    
-            // Perform the subtraction
-            let result = matrix1.subtract(&matrix2);
-    
-            // Expected output after broadcasting and subtraction
-            let expected_result = Matrix {
-                rows: 3,
-                columns: 4,
-                data: vec![
-                    0.0, 1.0, 2.0, 3.0,  // Row 1: [1.0, 2.0, 3.0, 4.0] - 1.0
-                    3.0, 4.0, 5.0, 6.0,  // Row 2: [5.0, 6.0, 7.0, 8.0] - 2.0
-                    6.0, 7.0, 8.0, 9.0,  // Row 3: [9.0, 10.0, 11.0, 12.0] - 3.0
-                ],
-            };
-    
-            // Assert that the result matches the expected result
-            assert_eq!(result.rows, expected_result.rows);
-            assert_eq!(result.columns, expected_result.columns);
-            assert_eq!(result.data, expected_result.data);
-        }
+   
     
 
     #[test]
