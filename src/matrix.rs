@@ -1,6 +1,7 @@
 use rand::Rng;
 //This module defines the Matrix struct and contains the function to initialize one
 #[derive(Clone)]
+#[derive(Debug)]
 pub struct Matrix {
     pub rows: usize,
     pub columns: usize,
