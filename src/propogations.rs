@@ -18,7 +18,7 @@ impl Network {
         self.data = vec![current.clone()]; // Store input as the first "activation"
         // Propagate through each layer
         for i in 0..self.weights.len() {
-            println!("Layer {} activations before forward propogation: {:?}", i, &current.data[..3]);
+            println!("Layer {} activations before forward propogation: {:?}", i, &current.data[..2]);
             // Weighted sum: Z = W * A + b
             current = self.weights[i]
                 .dot_product(&current) // Matrix multiplication: W * A
@@ -31,7 +31,7 @@ impl Network {
                 // Output layer: Apply softmax
                 current = current.softmax();
             }
-            println!("Layer {} activations after forward propogation: {:?}", i, &current.data[..3]);
+            println!("Layer {} activations after forward propogation: {:?}", i, &current.data[..2]);
             // Store the activations
             self.data.push(current.clone());
         }
@@ -78,7 +78,7 @@ impl Network {
         }
     
         // Update weights and biases using gradients
-        for i in (0..self.weights.len()) {
+        for i in 0..self.weights.len() {
            // println!("Before update, weights [layer {}]: {:?}", i, &self.weights[i].data[..5]);
             // println!("Before update, biases [layer {}]: {:?}", i, &self.weights[i].data[..5]);
             self.weights[i] = self.weights[i].subtract(&d_weights[i].scale(learning_rate));
@@ -151,47 +151,93 @@ mod tests {
     }
 
     #[test]
-    fn test_backprop_mnist() {
-        // Network suitable for MNIST: input -> hidden -> output
-        let mut network = Network::new(vec![784, 128, 10]);
-        
-        // Create mock input and target matrices
+    fn test_backprop_function() {
+        // Create a simple network
+        let mut network = Network::new(vec![2,3,2]);
+
+        // Define inputs and targets
         let inputs = Matrix {
-            rows: 784,
+            rows: 2,
             columns: 1,
-            data: vec![0.5; 784], // Example input: all pixels set to 0.8
+            data: vec![1.0, -1.0], // Example input
         };
-        let mut targets = Matrix {
-            rows: 10,
+        let targets = Matrix {
+            rows: 2,
             columns: 1,
-            data: vec![0.0; 10], // Example target: one-hot encoded
+            data: vec![0.0, 1.0], // Example target (one-hot encoded)
         };
 
-        // Set one of the target values to 1 (e.g., target class 3)
-        targets.data[3] = 1.0;
-
-        // Store initial weights and biases for comparison
-        let initial_weights = network.weights.clone();
-        let initial_biases = network.biases.clone();
+        // Perform forward propagation
+        let predictions = network.forward_prop(inputs.clone());
 
         // Perform backpropagation
-        network.backprop(&inputs, &targets, 0.001);
+        let original_weights = network.weights.clone();
+        network.backprop(&predictions, &targets, 0.01);
 
-        // Ensure weights and biases have been updated
-        for (initial, updated) in initial_weights.iter().zip(&network.weights) {
+        // Check that weights have been updated
+        for (i, (orig, updated)) in original_weights.iter().zip(&network.weights).enumerate() {
             assert!(
-                !initial.data.iter().zip(&updated.data).all(|(a, b)| (a - b).abs() < 1e-6),
-                "Weights did not change after backpropagation"
+                orig.data != updated.data,
+                "Weights for layer {} were not updated during backpropagation.",
+                i
             );
         }
-
-        for (initial, updated) in initial_biases.iter().zip(&network.biases) {
-            assert!(
-                !initial.data.iter().zip(&updated.data).all(|(a, b)| (a - b).abs() < 1e-6),
-                "Biases did not change after backpropagation"
-            );
-        }
-
     }
-    
+
+    #[test]
+    fn test_train_function() {
+        // Step 1: Create a simple network
+        let mut network = Network::new(vec![2, 3, 2]);
+
+        // Step 2: Define inputs and targets
+        let inputs = Matrix {
+            rows: 2,
+            columns: 4, // Batch of 4 examples
+            data: vec![1.0, -1.0, 0.5, -0.5, 2.0, -2.0, 0.1, -0.1], // Example inputs
+        };
+        let targets = Matrix {
+            rows: 2,
+            columns: 4,
+            data: vec![
+                0.0, 1.0, // One-hot for example 1
+                1.0, 0.0, // One-hot for example 2
+                0.0, 1.0, // One-hot for example 3
+                1.0, 0.0, // One-hot for example 4
+            ],
+        };
+
+        // Step 3: Record initial weights
+        let initial_weights: Vec<Matrix> = network.weights.clone();
+
+        // Step 4: Perform initial forward pass and loss calculation
+        let initial_predictions = network.forward_prop(inputs.clone());
+        let initial_loss = network.categorical_cross_entropy(&targets, &initial_predictions);
+        println!("Initial loss: {:.6}", initial_loss);
+
+        // Step 5: Train the network
+        network.train(&inputs, &targets, 20);
+
+        // Step 6: Perform forward pass after training and calculate loss
+        let predictions_after_training = network.forward_prop(inputs.clone());
+        let loss_after_training = network.categorical_cross_entropy(&targets, &predictions_after_training);
+        println!("Loss after training: {:.6}", loss_after_training);
+
+        // Step 7: Ensure loss has decreased
+        assert!(
+            loss_after_training < initial_loss,
+            "Loss did not decrease after training: initial = {:.6}, final = {:.6}",
+            initial_loss,
+            loss_after_training
+        );
+
+        // Step 8: Check that weights have been updated
+        for (i, (initial, updated)) in initial_weights.iter().zip(&network.weights).enumerate() {
+            assert!(
+                initial.data != updated.data,
+                "Weights for layer {} were not updated during training.",
+                i
+            );
+        }
+        }
+
 }

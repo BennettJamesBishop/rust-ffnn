@@ -9,21 +9,6 @@ pub struct Matrix {
 }
 
 impl Matrix {
-    pub fn new(rows: usize, columns: usize) -> Matrix {
-        let mut buffer = Vec::<f64>::with_capacity(rows * columns);
-
-        for _ in 0..rows * columns {
-            let num = rand::thread_rng().gen_range(0.0..1.0);
-            buffer.push(num);
-        }
-
-        Matrix {
-            rows: rows,
-            columns: columns,
-            data: buffer,
-        }
-    }
-
     pub fn he_initialization(rows: usize, columns: usize) -> Matrix {
         let scale = (2.0 / columns as f64).sqrt(); // Scale by incoming connections
         let data = (0..rows * columns)
@@ -32,7 +17,6 @@ impl Matrix {
         Matrix { rows, columns, data }
     }
     
-
     pub fn zeros(rows: usize, columns: usize) -> Matrix {
         Matrix {
             rows,
@@ -44,23 +28,35 @@ impl Matrix {
 
 #[cfg(test)]
 mod tests {
-use super::*;
+    use super::*; // Import the necessary structs and functions
+
     #[test]
-    fn test_matrix_initializer() {
+    fn test_zeros_function() {
         let rows = 3;
         let columns = 4;
-        let matrix = Matrix::new(rows, columns);
+        let matrix = Matrix::zeros(rows, columns);
 
-        // Check the dimensions
+        // Check dimensions
         assert_eq!(matrix.rows, rows);
         assert_eq!(matrix.columns, columns);
 
-        // Check the data length
-        assert_eq!(matrix.data.len(), rows * columns);
+        // Check that all values are zero
+        assert!(matrix.data.iter().all(|&x| x == 0.0));
+    }
 
-        // Check that all elements are within the range [0.0, 1.0)
-        for value in matrix.data {
-            assert!(value >= 0.0 && value < 1.0);
-        }
+    #[test]
+    fn test_he_initialization_function() {
+        let rows = 3;
+        let columns = 4;
+        let matrix = Matrix::he_initialization(rows, columns);
+
+        // Check dimensions
+        assert_eq!(matrix.rows, rows);
+        assert_eq!(matrix.columns, columns);
+
+        // Check that the values fall within the expected range
+        let scale = (2.0 / columns as f64).sqrt();
+        assert!(matrix.data.iter().all(|&x| x >= -scale && x <= scale));
     }
 }
+

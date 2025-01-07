@@ -237,7 +237,7 @@ pub fn read_first_n_samples(path_to_file: &str, n: usize) -> Result<(Array2<f64>
 
 
 // Reads CSV file into an array
-pub fn read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
+pub fn _read_csv(path_to_file: &str) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {
     use csv::StringRecord;
     use ndarray::Array2;
 

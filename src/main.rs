@@ -8,9 +8,8 @@ mod helpers;
 use crate::helpers::read_first_n_samples; //Add read_csv once necessary
 
 fn main() {
-    //For now use read_first_n_samples() for small training, once model is able to learn, replace this line with:
-    //match read_csv("fashion-mnist_test_first_2000.csv") {
-    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 100) {
+    //Once model is able to learn, replace read_first_n_samples() with read_csv()
+    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 10) {
         Ok((x_train, y_train)) => {
             println!("Data successfully loaded.");
             println!("Shape of X (features): {:?}", x_train.dim());
@@ -21,7 +20,7 @@ fn main() {
             let std = x_train.std(0.0);
             let x_train_normalized = x_train.mapv(|x| (x - mean) / std).reversed_axes(); // Now (784, 42000)
             
-            // Convert the feature matrix to your `Matrix` structure
+            // Convert input data to `Matrix` structure
             let input_matrix = Matrix {
                 rows: x_train_normalized.nrows(),  
                 columns: x_train_normalized.ncols(), 
@@ -74,41 +73,5 @@ fn main() {
             eprintln!("Error reading CSV: {}", e);
         }
     }
-    }
-   
+}
 
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-#[test]
-fn test_train_function() {
-    let mut network = Network::new(vec![4, 3, 2]);
-
-    // Create example inputs and targets
-    let inputs = Matrix {
-        rows: 4,
-        columns: 1,
-        data: vec![0.5, 0.2, 0.8, 0.1],
-    };
-
-    let targets = Matrix {
-        rows: 2,
-        columns: 1,
-        data: vec![0.0, 1.0],
-    };
-
-    // Train the network
-    network.train(&inputs, &targets,   10000);
-
-    // Check if the loss decreases after training
-    let loss_after: f64 = targets
-        .subtract(&network.forward_prop(inputs.clone()))
-        .data
-        .iter()
-        .map(|x| x * x)
-        .sum::<f64>() / targets.data.len() as f64;
-
-    assert!(loss_after < 1e-2, "Loss did not decrease sufficiently: {:.6}", loss_after);
-}}

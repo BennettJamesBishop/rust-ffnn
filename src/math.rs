@@ -37,7 +37,7 @@ impl Matrix {
         columns: self.columns,
         data: buffer
     }
-}
+    }
 
     /// Sum the columns of the matrix (reduce to a single column vector)
     pub fn sum_columns(&self) -> Matrix {
@@ -87,7 +87,7 @@ pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
         columns: self.columns,
         data,
     }
-}
+    }
 
     pub fn multiply(&self, matrix2: &Matrix) -> Matrix {
         if self.rows != matrix2.rows  {
@@ -194,11 +194,11 @@ pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
         }
         result
     }
-    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    
     #[test]
     fn test_add_matrices() {
         let matrix1 = Matrix {
@@ -246,7 +246,6 @@ mod tests {
         assert_eq!(result.data, vec![1.5, 2.5, 4.0, 5.0, 6.5, 7.5]);
     }        
     
-
     #[test]
     #[should_panic(expected = "Cannot add matrices: row mismatch. Matrix 1 has 2 rows, Matrix 2 has 3 rows.")]
     fn test_add_matrices_different_rows() {
@@ -286,9 +285,6 @@ mod tests {
         // Check data
         assert_eq!(result.data, vec![5.0, 14.0, 23.0, 32.0]);
     }
-
-   
-    
 
     #[test]
     fn test_multiply_matrices() {
@@ -416,26 +412,6 @@ mod tests {
     }
 
     #[test]
-    // fn test_relu() {
-    //     let mut matrix = Matrix {
-    //         rows: 2,
-    //         columns: 3,
-    //         data: vec![-1.0, 2.0, -3.0, 4.0, 0.0, -5.0],
-    //     };
-
-    //     matrix.relu();
-
-    //     let expected = Matrix {
-    //         rows: 2,
-    //         columns: 3,
-    //         data: vec![0.0, 2.0, 0.0, 4.0, 0.0, 0.0],
-    //     };
-
-    //     assert_eq!(matrix.data, expected.data);
-    // }
-
-
-    #[test]
     fn test_single_row_matrix_transpose() {
         let single_row = Matrix {
             rows: 1,
@@ -484,23 +460,8 @@ mod tests {
     }
 
     #[test]
-    // fn test_relu_derivative() {
-    //     let input = Matrix {
-    //         rows: 2,
-    //         columns: 2,
-    //         data: vec![1.0, -1.0, 0.0, 2.0],
-    //     };
-    //     let expected = Matrix {
-    //         rows: 2,
-    //         columns: 2,
-    //         data: vec![1.0, 0.0, 0.0, 1.0],
-    //     };
-    //     assert_eq!(input.relu_derivative().data, expected.data, "ReLU derivative mismatch");
-    // }
-
-    #[test]
     fn test_softmax_on_data() {
-        let mut matrix = Matrix {
+        let matrix = Matrix {
             rows: 3,
             columns: 3,
             data: vec![2500.0, 2300.0, 1000.0, 2500.0, 2300.0, 1500.0, 2500.0, 2300.0, 1500.0],

@@ -1,7 +1,6 @@
 use crate::matrix::Matrix;
 
 //This module defines the Network struct and contains the function to initialize one
-
 pub struct Network {
     pub layers: Vec<usize>, //number of neurons in each layer eg: [16, 12, 10]
     pub weights: Vec<Matrix>,
@@ -38,11 +37,9 @@ impl Network {
 
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     #[test]
     fn test_network_initialization() {
         // Define the network architecture (number of neurons in each layer)
@@ -106,6 +103,4 @@ mod tests {
             "Data vector should be empty upon initialization"
         );
     }
-  
-    
 }
