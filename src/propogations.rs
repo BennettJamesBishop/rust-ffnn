@@ -18,7 +18,7 @@ impl Network {
         self.data = vec![current.clone()]; // Store input as the first "activation"
         // Propagate through each layer
         for i in 0..self.weights.len() {
-            println!("Layer {} activations before forward propogation: {:?}", i, &current.data[..2]);
+           // println!("Layer {} activations before forward propogation: {:?}", i, &current.data[..2]);
             // Weighted sum: Z = W * A + b
             current = self.weights[i]
                 .dot_product(&current) // Matrix multiplication: W * A
@@ -31,89 +31,198 @@ impl Network {
                 // Output layer: Apply softmax
                 current = current.softmax();
             }
-            println!("Layer {} activations after forward propogation: {:?}", i, &current.data[..2]);
+            //println!("Layer {} activations after forward propogation: {:?}", i, &current.data[..2]);
             // Store the activations
             self.data.push(current.clone());
         }
         current
     }
     
-    pub fn backprop(
+    // pub fn backprop(
+    //     &mut self,
+    //     predictions: &Matrix,
+    //     targets: &Matrix,
+    //     learning_rate: f64,
+    // ) {     
+    //     // Initialize gradients
+    //     let mut d_weights = vec![];
+    //     let mut d_biases = vec![];
+    
+    //     // Compute the error at the output layer
+    //     let mut error = predictions.subtract(targets); // Error: Output - Target
+        
+    //     // Backward propagate through layers
+    //     for i in (0..self.weights.len()).rev() {
+
+    //         println!("Here is i {:?}", i);
+    //         // Derivative of activation function
+    //         let activation_derivative = if i == self.weights.len() - 1 {   
+    //             // Output layer: softmax derivative
+    //             println!("Here is error {:?}", error.clone());
+    //             error.clone() // dA = Output - Target (softmax + cross-entropy simplified)
+                
+    //         } else {
+    //             println!("Here is error {:?}", error.clone());
+    //             // Hidden layers: ReLU derivative
+    //             self.data[i + 1].leaky_relu_derivative(0.001)
+    //         };
+    
+    //         // Gradient of weights and biases
+    //         let delta = error.multiply(&activation_derivative);
+    //         let d_weight = delta.dot_product(&self.data[i].transpose());
+    //         let d_bias = delta.average_columns(); // Average bias gradients
+            
+    //         // Store gradients
+    //         d_weights.insert(0, d_weight);
+    //         d_biases.insert(0, d_bias);
+            
+    //         // Compute error for the next layer
+    //         if i > 0 {
+    //             error = self.weights[i].transpose().dot_product(&delta);
+    //         }
+    //     }
+    
+    //     // Update weights and biases using gradients
+    //     for i in 0..self.weights.len() {
+    //        // println!("Before update, weights [layer {}]: {:?}", i, &self.weights[i].data[..5]);
+    //         // println!("Before update, biases [layer {}]: {:?}", i, &self.weights[i].data[..5]);
+    //         self.weights[i] = self.weights[i].subtract(&d_weights[i].scale(learning_rate));
+    //         self.biases[i] = self.biases[i].subtract(&d_biases[i].scale(learning_rate));
+    //         // println!("After update, weights [layer {}]: {:?}", i, &self.weights[i].data[..4]);
+    //     }
+    // }
+
+    pub fn backprop_adam(
         &mut self,
         predictions: &Matrix,
         targets: &Matrix,
         learning_rate: f64,
-    ) {     
-        // Initialize gradients
-        let mut d_weights = vec![];
-        let mut d_biases = vec![];
-    
-        // Compute the error at the output layer
-        let mut error = predictions.subtract(targets); // Error: Output - Target
-        
-        // Backward propagate through layers
+        beta1: f64,
+        beta2: f64,
+        epsilon: f64,
+        t: usize,
+    ) {
+        let mut d_weights = Vec::new();
+        let mut d_biases = Vec::new();
+
+        let mut error = predictions.subtract(targets);
+
         for i in (0..self.weights.len()).rev() {
-            // Derivative of activation function
-            let activation_derivative = if i == self.weights.len() - 1 {   
-                // Output layer: softmax derivative
-                error.clone() // dA = Output - Target (softmax + cross-entropy simplified)
+            let activation_derivative = if i == self.weights.len() - 1 {
+                error.clone()
             } else {
-                // Hidden layers: ReLU derivative
-                self.data[i + 1].leaky_relu_derivative(0.001)
+                self.data[i + 1].leaky_relu_derivative(0.0001)
             };
-    
-            // Gradient of weights and biases
+
             let delta = error.multiply(&activation_derivative);
             let d_weight = delta.dot_product(&self.data[i].transpose());
-            let d_bias = delta.average_columns(); // Average bias gradients
-            
-            // Store gradients
+            let d_bias = delta.average_columns();
+
             d_weights.insert(0, d_weight);
             d_biases.insert(0, d_bias);
-            
-            // Compute error for the next layer
+
             if i > 0 {
                 error = self.weights[i].transpose().dot_product(&delta);
             }
         }
-    
-        // Update weights and biases using gradients
+
         for i in 0..self.weights.len() {
-           // println!("Before update, weights [layer {}]: {:?}", i, &self.weights[i].data[..5]);
-            // println!("Before update, biases [layer {}]: {:?}", i, &self.weights[i].data[..5]);
-            self.weights[i] = self.weights[i].subtract(&d_weights[i].scale(learning_rate));
-            self.biases[i] = self.biases[i].subtract(&d_biases[i].scale(learning_rate));
-            // println!("After update, weights [layer {}]: {:?}", i, &self.weights[i].data[..4]);
+            // Update momentum and RMSProp
+            self.m_weights[i] = self.m_weights[i]
+                .scale(beta1)
+                .add(&d_weights[i].scale(1.0 - beta1));
+            self.v_weights[i] = self.v_weights[i]
+                .scale(beta2)
+                .add(&d_weights[i].elementwise_square().scale(1.0 - beta2));
+
+            self.m_biases[i] = self.m_biases[i]
+                .scale(beta1)
+                .add(&d_biases[i].scale(1.0 - beta1));
+            self.v_biases[i] = self.v_biases[i]
+                .scale(beta2)
+                .add(&d_biases[i].elementwise_square().scale(1.0 - beta2));
+
+            // Correct bias
+            let m_weight_corrected = self.m_weights[i].scale(1.0 / (1.0 - beta1.powi(t as i32)));
+            let v_weight_corrected = self.v_weights[i].scale(1.0 / (1.0 - beta2.powi(t as i32)));
+
+            let m_bias_corrected = self.m_biases[i].scale(1.0 / (1.0 - beta1.powi(t as i32)));
+            let v_bias_corrected = self.v_biases[i].scale(1.0 / (1.0 - beta2.powi(t as i32)));
+
+            // Update weights and biases
+            self.weights[i] = self.weights[i].subtract(
+                &m_weight_corrected
+                    .elementwise_divide(&v_weight_corrected.elementwise_sqrt().add_scalar(epsilon))
+                    .scale(learning_rate),
+            );
+            self.biases[i] = self.biases[i].subtract(
+                &m_bias_corrected
+                    .elementwise_divide(&v_bias_corrected.elementwise_sqrt().add_scalar(epsilon))
+                    .scale(learning_rate),
+            );
         }
     }
     
-    pub fn train(
+    pub fn train_adam(
         &mut self,
         inputs: &Matrix,
         targets: &Matrix,
         epochs: usize,
+        beta1: f64,
+        beta2: f64,
+        epsilon: f64,
     ) {
-    
-        for epoch in 0..epochs {
-            let initial_rate = 0.0001;
-            let decay_rate = 0.000001;
-            let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
-    
+        for epoch in 1..=epochs {
             let predictions = self.forward_prop(inputs.clone());
-            // Perform backpropagation for each epoch
-            self.backprop(&predictions, targets, learning_rate);
+
+              // Test and print accuracy every epoch
+              let accuracy = self.test_accuracy(inputs, targets);
+              println!("Epoch {}: Accuracy = {:.5}%", epoch, accuracy * 100.0);
+            self.backprop_adam(
+                &predictions,
+                targets,
+                0.001, // Learning rate
+                beta1,
+                beta2,
+                epsilon,
+                epoch,
+            );
     
-            // Optionally, compute and print the loss to track progress
-            let outputs = self.forward_prop(inputs.clone());
-            if epoch % 2 == 0 {
-                        // Calculate the loss
-            let loss = self.categorical_cross_entropy(targets, &outputs);
-            println!("Epoch {}: Loss = {:.6}", epoch, loss);
-            
+            if epoch % 10 == 0 {
+                let loss = self.categorical_cross_entropy(targets, &predictions);
+                println!("Epoch {}: Loss = {:.6}", epoch, loss);
             }
-    
         }
     }
+
+    
+    // pub fn train(
+    //     &mut self,
+    //     inputs: &Matrix,
+    //     targets: &Matrix,
+    //     epochs: usize,
+    // ) {
+    
+    //     for epoch in 0..epochs {
+    //         let initial_rate = 0.0001;
+    //         let decay_rate = 0.000001;
+    //         let learning_rate = initial_rate / (1.0 + decay_rate * epoch as f64); // Inverse learning rate
+    
+    //         let predictions = self.forward_prop(inputs.clone());
+    //         // Perform backpropagation for each epoch
+    //         self.backprop(&predictions, targets, learning_rate);
+    
+    //         // Optionally, compute and print the loss to track progress
+    //         let outputs = self.forward_prop(inputs.clone());
+    //         if epoch % 2 == 0 {
+    //                     // Calculate the loss
+    //         let loss = self.categorical_cross_entropy(targets, &outputs);
+    //         println!("Epoch {}: Loss = {:.6}", epoch, loss);
+            
+    //         }
+    
+    //     }
+    // }
 }
 
 #[cfg(test)]
@@ -150,94 +259,94 @@ mod tests {
 
     }
 
-    #[test]
-    fn test_backprop_function() {
-        // Create a simple network
-        let mut network = Network::new(vec![2,3,2]);
+    // #[test]
+    // fn test_backprop_function() {
+    //     // Create a simple network
+    //     let mut network = Network::new(vec![2,3,2]);
 
-        // Define inputs and targets
-        let inputs = Matrix {
-            rows: 2,
-            columns: 1,
-            data: vec![1.0, -1.0], // Example input
-        };
-        let targets = Matrix {
-            rows: 2,
-            columns: 1,
-            data: vec![0.0, 1.0], // Example target (one-hot encoded)
-        };
+    //     // Define inputs and targets
+    //     let inputs = Matrix {
+    //         rows: 2,
+    //         columns: 1,
+    //         data: vec![1.0, -1.0], // Example input
+    //     };
+    //     let targets = Matrix {
+    //         rows: 2,
+    //         columns: 1,
+    //         data: vec![0.0, 1.0], // Example target (one-hot encoded)
+    //     };
 
-        // Perform forward propagation
-        let predictions = network.forward_prop(inputs.clone());
+    //     // Perform forward propagation
+    //     let predictions = network.forward_prop(inputs.clone());
 
-        // Perform backpropagation
-        let original_weights = network.weights.clone();
-        network.backprop(&predictions, &targets, 0.01);
+    //     // Perform backpropagation
+    //     let original_weights = network.weights.clone();
+    //     network.backprop(&predictions, &targets, 0.01);
 
-        // Check that weights have been updated
-        for (i, (orig, updated)) in original_weights.iter().zip(&network.weights).enumerate() {
-            assert!(
-                orig.data != updated.data,
-                "Weights for layer {} were not updated during backpropagation.",
-                i
-            );
-        }
-    }
+    //     // Check that weights have been updated
+    //     for (i, (orig, updated)) in original_weights.iter().zip(&network.weights).enumerate() {
+    //         assert!(
+    //             orig.data != updated.data,
+    //             "Weights for layer {} were not updated during backpropagation.",
+    //             i
+    //         );
+    //     }
+    // }
 
-    #[test]
-    fn test_train_function() {
-        // Step 1: Create a simple network
-        let mut network = Network::new(vec![2, 3, 2]);
+    // #[test]
+    // fn test_train_function() {
+    //     // Step 1: Create a simple network
+    //     let mut network = Network::new(vec![2, 3, 2]);
 
-        // Step 2: Define inputs and targets
-        let inputs = Matrix {
-            rows: 2,
-            columns: 4, // Batch of 4 examples
-            data: vec![1.0, -1.0, 0.5, -0.5, 2.0, -2.0, 0.1, -0.1], // Example inputs
-        };
-        let targets = Matrix {
-            rows: 2,
-            columns: 4,
-            data: vec![
-                0.0, 1.0, // One-hot for example 1
-                1.0, 0.0, // One-hot for example 2
-                0.0, 1.0, // One-hot for example 3
-                1.0, 0.0, // One-hot for example 4
-            ],
-        };
+    //     // Step 2: Define inputs and targets
+    //     let inputs = Matrix {
+    //         rows: 2,
+    //         columns: 4, // Batch of 4 examples
+    //         data: vec![1.0, -1.0, 0.5, -0.5, 2.0, -2.0, 0.1, -0.1], // Example inputs
+    //     };
+    //     let targets = Matrix {
+    //         rows: 2,
+    //         columns: 4,
+    //         data: vec![
+    //             0.0, 1.0, // One-hot for example 1
+    //             1.0, 0.0, // One-hot for example 2
+    //             0.0, 1.0, // One-hot for example 3
+    //             1.0, 0.0, // One-hot for example 4
+    //         ],
+    //     };
 
-        // Step 3: Record initial weights
-        let initial_weights: Vec<Matrix> = network.weights.clone();
+    //     // Step 3: Record initial weights
+    //     let initial_weights: Vec<Matrix> = network.weights.clone();
 
-        // Step 4: Perform initial forward pass and loss calculation
-        let initial_predictions = network.forward_prop(inputs.clone());
-        let initial_loss = network.categorical_cross_entropy(&targets, &initial_predictions);
-        println!("Initial loss: {:.6}", initial_loss);
+    //     // Step 4: Perform initial forward pass and loss calculation
+    //     let initial_predictions = network.forward_prop(inputs.clone());
+    //     let initial_loss = network.categorical_cross_entropy(&targets, &initial_predictions);
+    //     println!("Initial loss: {:.6}", initial_loss);
 
-        // Step 5: Train the network
-        network.train(&inputs, &targets, 20);
+    //     // Step 5: Train the network
+    //     network.train(&inputs, &targets, 20);
 
-        // Step 6: Perform forward pass after training and calculate loss
-        let predictions_after_training = network.forward_prop(inputs.clone());
-        let loss_after_training = network.categorical_cross_entropy(&targets, &predictions_after_training);
-        println!("Loss after training: {:.6}", loss_after_training);
+    //     // Step 6: Perform forward pass after training and calculate loss
+    //     let predictions_after_training = network.forward_prop(inputs.clone());
+    //     let loss_after_training = network.categorical_cross_entropy(&targets, &predictions_after_training);
+    //     println!("Loss after training: {:.6}", loss_after_training);
 
-        // Step 7: Ensure loss has decreased
-        assert!(
-            loss_after_training < initial_loss,
-            "Loss did not decrease after training: initial = {:.6}, final = {:.6}",
-            initial_loss,
-            loss_after_training
-        );
+    //     // Step 7: Ensure loss has decreased
+    //     assert!(
+    //         loss_after_training < initial_loss,
+    //         "Loss did not decrease after training: initial = {:.6}, final = {:.6}",
+    //         initial_loss,
+    //         loss_after_training
+    //     );
 
-        // Step 8: Check that weights have been updated
-        for (i, (initial, updated)) in initial_weights.iter().zip(&network.weights).enumerate() {
-            assert!(
-                initial.data != updated.data,
-                "Weights for layer {} were not updated during training.",
-                i
-            );
-        }
-        }
+    //     // Step 8: Check that weights have been updated
+    //     for (i, (initial, updated)) in initial_weights.iter().zip(&network.weights).enumerate() {
+    //         assert!(
+    //             initial.data != updated.data,
+    //             "Weights for layer {} were not updated during training.",
+    //             i
+    //         );
+    //     }
+    //     }
 
 }

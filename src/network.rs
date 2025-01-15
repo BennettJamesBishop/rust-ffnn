@@ -2,35 +2,45 @@ use crate::matrix::Matrix;
 
 //This module defines the Network struct and contains the function to initialize one
 pub struct Network {
-    pub layers: Vec<usize>, //number of neurons in each layer eg: [16, 12, 10]
+    pub layers: Vec<usize>,
     pub weights: Vec<Matrix>,
     pub biases: Vec<Matrix>,
     pub data: Vec<Matrix>,
+    pub m_weights: Vec<Matrix>, // Momentum for weights
+    pub v_weights: Vec<Matrix>, // RMSProp for weights
+    pub m_biases: Vec<Matrix>,  // Momentum for biases
+    pub v_biases: Vec<Matrix>,  // RMSProp for biases
 }
+
 
 impl Network {
 
     pub fn new(layers: Vec<usize>) -> Self {
-        // Initialize weights and biases
         let mut weights = Vec::new();
         let mut biases = Vec::new();
+        let mut m_weights = Vec::new();
+        let mut v_weights = Vec::new();
+        let mut m_biases = Vec::new();
+        let mut v_biases = Vec::new();
 
         for i in 0..layers.len() - 1 {
-            // Randomly initialize weights as matrices with dimensions (current_layer x next_layer)
-            weights.push(Matrix::he_initialization(layers[i+1], layers[i]));
-            
-            // Randomly initialize biases as column matrices (1 x next_layer)
-            biases.push(Matrix::zeros(layers[i + 1], 1)); 
+            weights.push(Matrix::he_initialization(layers[i + 1], layers[i]));
+            biases.push(Matrix::zeros(layers[i + 1], 1));
+            m_weights.push(Matrix::zeros(layers[i + 1], layers[i]));
+            v_weights.push(Matrix::zeros(layers[i + 1], layers[i]));
+            m_biases.push(Matrix::zeros(layers[i + 1], 1));
+            v_biases.push(Matrix::zeros(layers[i + 1], 1));
         }
-
-        // Create an empty data vector
-        let data = Vec::new();
 
         Network {
             layers,
             weights,
             biases,
-            data: data,
+            data: Vec::new(),
+            m_weights,
+            v_weights,
+            m_biases,
+            v_biases,
         }
     }
 

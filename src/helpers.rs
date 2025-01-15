@@ -111,6 +111,10 @@ impl Network {
                 weights,
                 biases,
                 data: Vec::new(),
+                m_weights: Vec::new(),
+                v_weights: Vec::new(),
+                m_biases: Vec::new(),
+                v_biases: Vec::new()
             })
         }
 
@@ -146,14 +150,14 @@ impl Network {
 
         // Perform forward propagation for all inputs at once
         let outputs = self.forward_prop(inputs.clone());
-        println!("Output probabailities: {:?}", outputs.data[..10].to_vec());
+        // println!("Output probabailities: {:?}", outputs.data[..10].to_vec());
         // Debug softmax outputs
         let sum_probs: Vec<f64> = outputs
             .data
             .chunks(outputs.rows)
             .map(|column| column.iter().sum())
             .collect();
-        println!("Sum of probabilities for each sample: {:?}", &sum_probs[..2]);
+        // println!("Sum of probabilities for each sample: {:?}", &sum_probs[..2]);
 
         // Predicted classes
         let predicted_classes: Vec<usize> = outputs
@@ -168,7 +172,8 @@ impl Network {
                     .unwrap()
             })
             .collect();
-        println!("Predicted classes: {:?}", &predicted_classes[..4]);
+        //println!("Predicted classes: {:?}", &predicted_classes[..10]);
+        //println!("Class distribution: {:?}", &predicted_classes.iter());
 
         // True classes
         let true_classes: Vec<usize> = targets
@@ -183,7 +188,7 @@ impl Network {
                     .unwrap()
             })
             .collect();
-        println!("True classes: {:?}", &true_classes[..4]);
+        println!("True classes: {:?}", &true_classes[..10]);
 
         // Calculate accuracy
         let correct = predicted_classes
@@ -198,6 +203,7 @@ impl Network {
 
 
 //OTHER HELPER FUNCTS: read_first_n_samples, read_csv
+
 
 // Reads first n samples from dataset
 pub fn read_first_n_samples(path_to_file: &str, n: usize) -> Result<(Array2<f64>, Vec<u64>), Box<dyn Error>> {

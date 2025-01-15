@@ -194,6 +194,57 @@ pub fn subtract(&self, matrix2: &Matrix) -> Matrix {
         }
         result
     }
+
+    pub fn elementwise_square(&self) -> Matrix {
+        let data: Vec<f64> = self.data.iter().map(|&x| x * x).collect();
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data,
+        }
+    }
+
+    pub fn elementwise_divide(&self, matrix2: &Matrix) -> Matrix {
+        assert_eq!(self.rows, matrix2.rows, "Row count mismatch in elementwise_divide()");
+        assert_eq!(self.columns, matrix2.columns, "Column count mismatch in elementwise_divide()");
+    
+        let data: Vec<f64> = self
+            .data
+            .iter()
+            .zip(&matrix2.data)
+            .map(|(a, b)| a / b)
+            .collect();
+    
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data,
+        }
+    }
+
+    pub fn add_scalar(&self, scalar: f64) -> Matrix {
+        let data: Vec<f64> = self.data.iter().map(|&x| x + scalar).collect();
+        Matrix {
+            rows: self.rows,
+            columns: self.columns,
+            data,
+        }
+    }
+
+
+        pub fn elementwise_sqrt(&self) -> Matrix {
+            let data: Vec<f64> = self.data.iter().map(|&x| x.sqrt()).collect();
+            Matrix {
+                rows: self.rows,
+                columns: self.columns,
+                data,
+            }
+        }
+    
+    
+    
+    
+    
 }
 #[cfg(test)]
 mod tests {

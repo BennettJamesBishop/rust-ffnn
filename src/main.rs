@@ -6,14 +6,70 @@ use network::Network;
 mod propogations;
 mod helpers;
 use crate::helpers::read_first_n_samples; //Add read_csv once necessary
+fn balance_dataset(inputs: &Matrix, targets: &Matrix) -> (Matrix, Matrix) {
+    let mut balanced_inputs = Vec::new();
+    let mut balanced_targets = Vec::new();
+
+    // Count occurrences of each class
+    let class_counts = targets.data.chunks(targets.rows).fold(vec![0; targets.rows], |mut counts, row| {
+        for (i, &val) in row.iter().enumerate() {
+            if val == 1.0 {
+                counts[i] += 1;
+            }
+        }
+        counts
+    });
+
+    // Find the maximum class count
+    let max_count = *class_counts.iter().max().unwrap();
+
+    // Oversample underrepresented classes
+    for (class_idx, &count) in class_counts.iter().enumerate() {
+        // Find all samples belonging to this class
+        let class_samples: Vec<usize> = targets
+            .data
+            .chunks(targets.rows)
+            .enumerate()
+            .filter(|(_, row)| row[class_idx] == 1.0)
+            .map(|(i, _)| i)
+            .collect();
+
+        // Oversample to reach max_count
+        let mut oversampled_indices = class_samples.clone();
+        while oversampled_indices.len() < max_count {
+            oversampled_indices.push(class_samples[rand::random::<usize>() % class_samples.len()]);
+        }
+
+        // Add samples to the balanced dataset
+        for idx in oversampled_indices {
+            balanced_inputs.extend_from_slice(&inputs.data[idx * inputs.rows..(idx + 1) * inputs.rows]);
+            balanced_targets.extend_from_slice(&targets.data[idx * targets.rows..(idx + 1) * targets.rows]);
+        }
+    }
+
+    // Return the balanced dataset
+    (
+        Matrix {
+            rows: inputs.rows,
+            columns: balanced_inputs.len() / inputs.rows,
+            data: balanced_inputs,
+        },
+        Matrix {
+            rows: targets.rows,
+            columns: balanced_targets.len() / targets.rows,
+            data: balanced_targets,
+        },
+    )
+}
 
 fn main() {
     //Once model is able to learn, replace read_first_n_samples() with read_csv()
-    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 10) {
+    match read_first_n_samples("fashion-mnist_test_first_2000.csv", 2000) {
         Ok((x_train, y_train)) => {
             println!("Data successfully loaded.");
             println!("Shape of X (features): {:?}", x_train.dim());
             println!("Shape of Y (labels): {:?}", y_train.len());
+            //println!("Original Class distribution: {:?}", y_train.iter());
             
             // Normalize and transpose features
             let mean = x_train.mean().unwrap();
@@ -40,20 +96,22 @@ fn main() {
                     .collect(),
             };
 
+            let (new_input_matrix, new_target_matrix) = balance_dataset(&input_matrix, &target_matrix);
+
             println!(
                 "Input matrix shape: {}x{}",
-                input_matrix.rows, input_matrix.columns
+                new_input_matrix.rows, new_input_matrix.columns
             );
             println!(
                 "Target matrix shape: {}x{}",
-                target_matrix.rows, target_matrix.columns
+                new_target_matrix.rows, new_target_matrix.columns
             );
 
             // Initialize the network
-            let mut network = Network::new(vec![784, 70, 10]); // Example architecture
+            let mut network = Network::new(vec![784, 256, 128, 10]); // Example architecture
 
             // Train the network
-            network.train(&input_matrix, &target_matrix, 3);
+            network.train_adam(&input_matrix, &target_matrix, 500, 0.9, 0.999, 1.0e-8 );
 
             // Save the model
             network.save_model("mnist_model.bin").expect("Failed to save model");
